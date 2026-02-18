@@ -1,30 +1,21 @@
-Shader "UI/SuppressionRadialBlock"
+Shader "UI/SuppressionRadialBlock_AlphaAware"
 {
     Properties
     {
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
         _Color ("Tint", Color) = (1,1,1,1)
 
-        // 制圧率（0〜1）
         _Suppression ("Suppression", Range(0,1)) = 0
 
-        // 色
         _ColorA ("Low Color", Color) = (1,0,0,1)
         _ColorB ("High Color", Color) = (0,0.6,1,1)
 
-        // 放射中心（UV）
         _Center ("Radial Center", Vector) = (0.5,0.5,0,0)
 
-        // ブロック数（小さいほど荒い）
         _BlockCount ("Block Count", Range(4,128)) = 32
-
-        // ランダム強度
         _NoiseStrength ("Noise Strength", Range(0,1)) = 0.15
 
-        // 境界幅
         _EdgeWidth ("Edge Width", Range(0.001,0.2)) = 0.03
-
-        // 境界色
         _EdgeColor ("Edge Color", Color) = (0,0,0,1)
     }
 
@@ -35,7 +26,6 @@ Shader "UI/SuppressionRadialBlock"
             "Queue"="Transparent"
             "IgnoreProjector"="True"
             "RenderType"="Transparent"
-            "PreviewType"="Plane"
             "CanUseSpriteAtlas"="True"
         }
 
@@ -86,13 +76,11 @@ Shader "UI/SuppressionRadialBlock"
                 return o;
             }
 
-            // ブロック化
             float2 BlockUV(float2 uv, float blockCount)
             {
                 return floor(uv * blockCount) / blockCount;
             }
 
-            // ハッシュ（ランダム）
             float Hash21(float2 p)
             {
                 p = frac(p * float2(123.34, 345.45));
@@ -104,30 +92,43 @@ Shader "UI/SuppressionRadialBlock"
             {
                 fixed4 tex = tex2D(_MainTex, i.uv) * i.color;
 
-                // ブロック化
+                // ★ 完全透明なら描画不要
+                if (tex.a <= 0.001)
+                    return fixed4(0,0,0,0);
+
                 float2 buv = BlockUV(i.uv, _BlockCount);
 
-                // 放射距離（正規化）
-                float dist = distance(buv, _Center.xy);
+                float2 c = _Center.xy;
+                float dist = distance(buv, c);
 
-                // UV空間最大距離（対角）
-                float maxRadius = 1.41421356; // sqrt(2)
+                // 中心から四隅までの最大距離
+                float d1 = distance(c, float2(0,0));
+                float d2 = distance(c, float2(1,0));
+                float d3 = distance(c, float2(0,1));
+                float d4 = distance(c, float2(1,1));
+
+                float maxRadius = max(max(d1, d2), max(d3, d4));
 
                 float radial = saturate(dist / maxRadius);
 
-                // ランダム加算
                 float noise = Hash21(buv) * _NoiseStrength;
 
                 float value = saturate(radial + noise);
 
                 float threshold = saturate(_Suppression);
 
-                // 塗り判定
+                // ★ 100%時は強制完全塗り
+                if (threshold >= 0.999)
+                {
+                    fixed4 full = _ColorB;
+                    full.a *= tex.a;
+                    return full;
+                }
+
                 float fill = step(value, threshold);
 
                 fixed4 baseCol = lerp(_ColorA, _ColorB, fill);
 
-                // ===== 境界処理（安全版）=====
                 float diff = abs(value - threshold);
                 float edgeMask = step(diff, _EdgeWidth);
 

@@ -364,8 +364,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
   maxSuppression: 100
-  lerpSpeed: 4
-  centerLocalPosition: {x: 0, y: 0}
+  maxFillSpeedPerSecond: 0.35
+  missingCorner: 0
+  cornerBias: 0.3
+  alphaHitThreshold: 0.1
 --- !u!114 &185094690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1159,8 +1161,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
   maxSuppression: 100
-  lerpSpeed: 4
-  centerLocalPosition: {x: 0, y: 0}
+  maxFillSpeedPerSecond: 0.35
+  missingCorner: 3
+  cornerBias: 0
+  alphaHitThreshold: 0.1
 --- !u!114 &766049626
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1181,7 +1185,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 1176591132969804064, guid: 9b725fc3ab5724fe0a8f5b7ac2f5127a, type: 3}
+  m_Sprite: {fileID: 0}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1460,7 +1464,7 @@ MonoBehaviour:
   statusNormalColor: {r: 1, g: 1, b: 1, a: 1}
   statusSuccessColor: {r: 0, g: 1, b: 0, a: 1}
   statusFailColor: {r: 1, g: 0, b: 0, a: 1}
-  damagePerSuccess: 15
+  damagePerSuccess: 20
   flowGainOnSuccess: 10
   flowLossOnFail: 5
   startTimerOnSelect: 1
@@ -1650,8 +1654,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
   maxSuppression: 100
-  lerpSpeed: 4
-  centerLocalPosition: {x: 0, y: 0}
+  maxFillSpeedPerSecond: 0.35
+  missingCorner: 1
+  cornerBias: 0.3
+  alphaHitThreshold: 0.1
 --- !u!114 &1616853395
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1788,8 +1794,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
   maxSuppression: 100
-  lerpSpeed: 4
-  centerLocalPosition: {x: 0, y: 0}
+  maxFillSpeedPerSecond: 0.35
+  missingCorner: 0
+  cornerBias: 0.3
+  alphaHitThreshold: 0.1
 --- !u!114 &1685705315
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2050,8 +2058,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
   maxSuppression: 100
-  lerpSpeed: 4
-  centerLocalPosition: {x: 0, y: 0}
+  maxFillSpeedPerSecond: 0.35
+  missingCorner: 2
+  cornerBias: 0.3
+  alphaHitThreshold: 0.1
 --- !u!114 &1853282469
 MonoBehaviour:
   m_ObjectHideFlags: 0
