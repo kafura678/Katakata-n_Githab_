@@ -1,26 +1,22 @@
-Shader "UI/SuppressionRadialBlock"
+Shader "UI/SuppressionRadialBlock_AlphaAware"
 {
     Properties
     {
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
+        _Color ("Tint", Color) = (1,1,1,1)
 
-        _RedColor  ("Uncontrolled Color", Color) = (1,0,0,1)
-        _BlueColor ("Controlled Color",   Color) = (0,0.6,1,1)
+        _Suppression ("Suppression", Range(0,1)) = 0
 
-        _Progress  ("Suppression Progress (0-1)", Range(0,1)) = 0
-        _Center    ("Invasion Center (UV)", Vector) = (0.5,0.5,0,0)
+        _ColorA ("Low Color", Color) = (1,0,0,1)
+        _ColorB ("High Color", Color) = (0,0.6,1,1)
 
-        _Blocks    ("Blocks Per Axis", Range(4,256)) = 64
-        _HardEdge  ("Hard Edge (0=smooth,1=hard)", Range(0,1)) = 1
-        _EdgeWidth ("Edge Softness", Range(0.0,0.2)) = 0.0
+        _Center ("Radial Center", Vector) = (0.5,0.5,0,0)
 
-        _StepCount ("Progress Steps", Range(1,512)) = 128
+        _BlockCount ("Block Count", Range(4,128)) = 32
+        _NoiseStrength ("Noise Strength", Range(0,1)) = 0.15
 
-        _TieBreak  ("Tie Break Amount", Range(0,0.05)) = 0.01
-        _Seed      ("Noise Seed", Float) = 1
-
-        _BorderNoiseAmount ("Border Noise Amount", Range(0,1)) = 0.4
-        _BorderNoiseWidth  ("Border Noise Width", Range(0,0.2)) = 0.03
+        _EdgeWidth ("Edge Width", Range(0.001,0.2)) = 0.03
+        _EdgeColor ("Edge Color", Color) = (0,0,0,1)
     }
 
     SubShader
@@ -45,11 +41,23 @@ Shader "UI/SuppressionRadialBlock"
             #pragma fragment frag
             #include "UnityCG.cginc"
 
+            sampler2D _MainTex;
+            fixed4 _Color;
+
+            float _Suppression;
+            fixed4 _ColorA;
+            fixed4 _ColorB;
+            float4 _Center;
+            float _BlockCount;
+            float _NoiseStrength;
+            float _EdgeWidth;
+            fixed4 _EdgeColor;
+
             struct appdata
             {
-                float4 vertex   : POSITION;
-                float2 texcoord : TEXCOORD0;
-                fixed4 color    : COLOR;
+                float4 vertex : POSITION;
+                float2 uv     : TEXCOORD0;
+                fixed4 color  : COLOR;
             };
 
             struct v2f
@@ -59,105 +67,76 @@ Shader "UI/SuppressionRadialBlock"
                 fixed4 color  : COLOR;
             };
 
-            sampler2D _MainTex;
-            float4 _MainTex_TexelSize;
-
-            fixed4 _RedColor;
-            fixed4 _BlueColor;
-
-            float  _Progress;
-            float2 _Center;
-
-            float _Blocks;
-            float _HardEdge;
-            float _EdgeWidth;
-
-            float _StepCount;
-            float _TieBreak;
-            float _Seed;
-
-            float _BorderNoiseAmount;
-            float _BorderNoiseWidth;
-
-            v2f vert (appdata v)
+            v2f vert(appdata v)
             {
                 v2f o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
-                o.uv = v.texcoord;
-                o.color = v.color;
+                o.uv = v.uv;
+                o.color = v.color * _Color;
                 return o;
+            }
+
+            float2 BlockUV(float2 uv, float blockCount)
+            {
+                return floor(uv * blockCount) / blockCount;
             }
 
             float Hash21(float2 p)
             {
-                p = frac(p * float2(123.34, 456.21));
+                p = frac(p * float2(123.34, 345.45));
                 p += dot(p, p + 34.345);
                 return frac(p.x * p.y);
             }
 
-            float Max4(float a, float b, float c, float d)
+            fixed4 frag(v2f i) : SV_Target
             {
-                return max(max(a, b), max(c, d));
-            }
+                fixed4 tex = tex2D(_MainTex, i.uv) * i.color;
 
-            fixed4 frag (v2f i) : SV_Target
-            {
-                fixed4 baseCol = tex2D(_MainTex, i.uv) * i.color;
+                // ★ 完全透明なら描画不要
+                if (tex.a <= 0.001)
+                    return fixed4(0,0,0,0);
 
-                float blocks = max(1.0, _Blocks);
+                float2 buv = BlockUV(i.uv, _BlockCount);
 
-                // アスペクト補正（ブロックを正方形に見せる）
-                float aspect = _MainTex_TexelSize.z / max(1.0, _MainTex_TexelSize.w);
+                float2 c = _Center.xy;
+                float dist = distance(buv, c);
 
-                float2 uvA = float2(i.uv.x * aspect, i.uv.y);
-                float2 cA  = float2(_Center.x * aspect, _Center.y);
+                // 中心から四隅までの最大距離
+                float d1 = distance(c, float2(0,0));
+                float d2 = distance(c, float2(1,0));
+                float d3 = distance(c, float2(0,1));
+                float d4 = distance(c, float2(1,1));
 
-                // ブロック中心にスナップ
-                float2 cellUV = floor(uvA * blocks);
-                float2 uvQ = (cellUV + 0.5) / blocks;
+                float maxRadius = max(max(d1, d2), max(d3, d4));
 
-                float2 cellC = floor(cA * blocks);
-                float2 centerQ = (cellC + 0.5) / blocks;
+                float radial = saturate(dist / maxRadius);
 
-                float dist = distance(uvQ, centerQ);
+                float noise = Hash21(buv) * _NoiseStrength;
 
-                // Progress=1で必ず全域に届く最大距離
-                float d0 = distance(centerQ, float2(0.0, 0.0));
-                float d1 = distance(centerQ, float2(aspect, 0.0));
-                float d2 = distance(centerQ, float2(0.0, 1.0));
-                float d3 = distance(centerQ, float2(aspect, 1.0));
-                float maxDist = Max4(d0, d1, d2, d3);
+                float value = saturate(radial + noise);
 
-                float nd = (maxDist > 1e-6) ? (dist / maxDist) : 0.0;
+                float threshold = saturate(_Suppression);
 
-                // 同距離ブロックの順番付け
-                float h = Hash21(cellUV + _Seed);
-                nd += (h - 0.5) * _TieBreak;
-
-                // 段階化
-                float steps = max(1.0, _StepCount);
-                float p = saturate(_Progress);
-                p = floor(p * steps) / steps;
-
-                float tSmooth = smoothstep(p - _EdgeWidth, p + _EdgeWidth, nd);
-                float tHard   = step(p, nd);
-                float t = lerp(tSmooth, tHard, saturate(_HardEdge));
-
-                fixed4 col = lerp(_BlueColor, _RedColor, t);
-
-                // ===== 境界黒ノイズ =====
-                float border = abs(nd - p);
-
-                if (border < _BorderNoiseWidth)
+                // ★ 100%時は強制完全塗り
+                if (threshold >= 0.999)
                 {
-                    if (h < _BorderNoiseAmount)
-                    {
-                        col.rgb = float3(0,0,0);
-                    }
+                    fixed4 full = _ColorB;
+                    full.a *= tex.a;
+                    return full;
                 }
 
-                col.a *= baseCol.a;
-                return col;
+                float fill = step(value, threshold);
+
+                fixed4 baseCol = lerp(_ColorA, _ColorB, fill);
+
+                float diff = abs(value - threshold);
+                float edgeMask = step(diff, _EdgeWidth);
+
+                baseCol = lerp(baseCol, _EdgeColor, edgeMask);
+
+                baseCol.a *= tex.a;
+
+                return baseCol;
             }
             ENDCG
         }

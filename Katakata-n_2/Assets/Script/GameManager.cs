@@ -16,6 +16,7 @@ public class GameManager : MonoBehaviour
 
     [Header("敵")]
     [SerializeField] private EnemySystem enemy;
+    [SerializeField] private EnemyManager enemyManager;
     [SerializeField] private Text textEnemySuppression; // 制圧率：12.3%
 
     [Header("フロー")]
@@ -204,7 +205,7 @@ public class GameManager : MonoBehaviour
         float flowMult = CalcSimulMultiplier(k, flowBonusPerAdditional, maxFlowSimulMultiplier);
 
         if (enemy != null)
-            enemy.ApplyDamage(damagePerSuccess * dmgMult);
+            enemyManager.ApplyDamageToCurrent(damagePerSuccess * dmgMult);
 
         // ★ 送信1回ごとにじわじわ反映（EnemyUISuppressionView側で補間）
         enemyView?.AnimateOneSend();
