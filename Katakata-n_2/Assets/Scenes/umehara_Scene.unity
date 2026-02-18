@@ -1170,7 +1170,7 @@ MonoBehaviour:
   flowBonusPerAdditional: 0.25
   maxDamageSimulMultiplier: 5
   maxFlowSimulMultiplier: 5
-  challengeRevealSeconds: 0.35
+  challengeRevealSeconds: 0.5
 --- !u!1 &1548815607
 GameObject:
   m_ObjectHideFlags: 0
