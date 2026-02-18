@@ -61,6 +61,8 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _BlockCount: 15
+    - _BlockSize: 24
     - _Blocks: 64
     - _BorderNoiseAmount: 0.25
     - _BorderNoiseWidth: 0.03
@@ -73,8 +75,10 @@ Material:
     - _Glossiness: 0.5
     - _GlossyReflections: 1
     - _HardEdge: 1
+    - _LerpSpeed: 5
     - _Metallic: 0
     - _Mode: 0
+    - _NoiseStrength: 0.2
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _Progress: 0
@@ -83,6 +87,7 @@ Material:
     - _SpecularHighlights: 1
     - _SrcBlend: 1
     - _StepCount: 256
+    - _Suppression: 0
     - _TieBreak: 0.05
     - _UVSec: 0
     - _ZWrite: 1
@@ -90,6 +95,9 @@ Material:
     - _BlueColor: {r: 0, g: 0.6, b: 1, a: 1}
     - _Center: {r: 0.5, g: 0.5, b: 0, a: 0}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _ColorA: {r: 1, g: 0, b: 0, a: 1}
+    - _ColorB: {r: 0, g: 0.6, b: 1, a: 1}
+    - _EdgeColor: {r: 0, g: 0, b: 0, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _RedColor: {r: 1, g: 0, b: 0, a: 1}
   m_BuildTextureStacks: []
