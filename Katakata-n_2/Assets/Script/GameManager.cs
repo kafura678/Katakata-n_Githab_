@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
@@ -11,7 +12,7 @@ public class GameManager : MonoBehaviour
     // ==============================
     [Header("参照")]
     [SerializeField] private InputBuffer inputBuffer;
-    [SerializeField] EnemyUISuppressionView enemyView;
+    [SerializeField] private EnemyUISuppressionView enemyView;
 
     [Header("敵")]
     [SerializeField] private EnemySystem enemy;
@@ -136,7 +137,7 @@ public class GameManager : MonoBehaviour
 
         GenerateChallenges();
         BuildChallengeListUI();
-        ClearSelection();
+        ClearSelectionVisualOnly();
         RefreshUI();
     }
 
@@ -173,57 +174,72 @@ public class GameManager : MonoBehaviour
         // Enter送信
         if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
         {
-            bool ok = IsSendableForAllSelected();
-
-            if (ok)
-            {
-                ForceStatus("送信成功", statusSuccessColor);
-                PlaySE(seSuccess);
-
-                int k = selectedSet.Count;
-
-                float dmgMult = CalcSimulMultiplier(k, damageBonusPerAdditional, maxDamageSimulMultiplier);
-                float flowMult = CalcSimulMultiplier(k, flowBonusPerAdditional, maxFlowSimulMultiplier);
-
-                if (enemy != null)
-                    enemy.ApplyDamage(damagePerSuccess * dmgMult);
-
-                enemyView?.AnimateOneSend();
-
-                if (flow != null)
-                {
-                    float elapsed = hasStartedTiming ? (Time.time - challengeStartTime) : 0f;
-                    float timeMult = CalcTimeMultiplier(elapsed);
-                    flow.Add(flowGainOnSuccess * timeMult * flowMult);
-                }
-
-                // 成功したお題を置換（出現演出で選択不可→可）
-                ReplaceSelectedChallengesWithReveal();
-
-                // 入力・計測リセット
-                inputBuffer.ClearAll();
-                hasStartedTiming = false;
-
-                // 成功後は選び直し
-                ClearSelection();
-
-                // EnterのUI事故防止
-                if (EventSystem.current != null)
-                    EventSystem.current.SetSelectedGameObject(null);
-            }
-            else
-            {
-                ForceStatus("送信失敗", statusFailColor);
-                PlaySE(seFail);
-
-                if (flow != null)
-                    flow.Sub(flowLossOnFail);
-
-                inputBuffer.ClearAll();
-            }
+            HandleSend();
         }
 
         RefreshUI();
+    }
+
+    // ==============================
+    // 送信
+    // ==============================
+    private void HandleSend()
+    {
+        bool ok = IsSendableForAllSelected();
+
+        if (ok)
+            OnSendSuccess();
+        else
+            OnSendFail();
+    }
+
+    private void OnSendSuccess()
+    {
+        ForceStatus("送信成功", statusSuccessColor);
+        PlaySE(seSuccess);
+
+        int k = selectedSet.Count;
+
+        float dmgMult = CalcSimulMultiplier(k, damageBonusPerAdditional, maxDamageSimulMultiplier);
+        float flowMult = CalcSimulMultiplier(k, flowBonusPerAdditional, maxFlowSimulMultiplier);
+
+        if (enemy != null)
+            enemy.ApplyDamage(damagePerSuccess * dmgMult);
+
+        // ★ 送信1回ごとにじわじわ反映（EnemyUISuppressionView側で補間）
+        enemyView?.AnimateOneSend();
+
+        if (flow != null)
+        {
+            float elapsed = hasStartedTiming ? (Time.time - challengeStartTime) : 0f;
+            float timeMult = CalcTimeMultiplier(elapsed);
+            flow.Add(flowGainOnSuccess * timeMult * flowMult);
+        }
+
+        // 成功したお題を置換（出現演出で選択不可→可）
+        ReplaceSelectedChallengesWithReveal();
+
+        // 入力・計測リセット
+        inputBuffer.ClearAll();
+        hasStartedTiming = false;
+
+        // 成功後は選び直し
+        ClearSelectionAll();
+
+        // EnterのUI事故防止
+        if (EventSystem.current != null)
+            EventSystem.current.SetSelectedGameObject(null);
+    }
+
+    private void OnSendFail()
+    {
+        ForceStatus("送信失敗", statusFailColor);
+        PlaySE(seFail);
+
+        if (flow != null)
+            flow.Sub(flowLossOnFail);
+
+        inputBuffer.ClearAll();
     }
 
     // ==============================
@@ -236,7 +252,7 @@ public class GameManager : MonoBehaviour
         inputBuffer.AcceptInput = false;
         inputBuffer.ClearAll();
 
-        ClearSelection();
+        ClearSelectionAll();
         ForceStatus(timeUpMessage, statusFailColor);
 
         if (EventSystem.current != null)
@@ -263,10 +279,15 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < challenges.Count; i++)
         {
             var item = Instantiate(challengeButtonPrefab, challengeListParent);
+
             item.Setup(i, challenges[i], OnClickChallenge);
             item.SetSelected(false);
             item.SetExcluded(false);
+
             challengeButtons.Add(item);
+
+            // ★ 追加：開始時もReveal
+            item.BeginReveal(challengeRevealSeconds);
         }
     }
 
@@ -278,64 +299,11 @@ public class GameManager : MonoBehaviour
 
         if (!shift)
         {
-            // 単独選択
-            selectedSet.Clear();
-            selectedSet.Add(index);
-
-            inputBuffer.ClearAll();
-            StartTimingIfNeeded();
-
-            ClearForcedStatus();
-
-            if (EventSystem.current != null)
-                EventSystem.current.SetSelectedGameObject(null);
-
-            RefreshUI();
+            SelectSingle(index);
             return;
         }
 
-        // Shift：同時選択トグル
-        if (selectedSet.Contains(index))
-        {
-            selectedSet.Remove(index);
-        }
-        else
-        {
-            // ① 出現中などで選択不可
-            if (index < 0 || index >= challengeButtons.Count) return;
-
-            var btn = challengeButtons[index];
-            if (btn == null || !btn.IsSimulSelectable)
-            {
-                // ★ここ
-                ForceStatus("選択不可", statusFailColor);
-                PlaySE(seFail);
-                return;
-            }
-
-            // ② レンジ不一致（キー数が同時に満たせない）
-            if (selectedSet.Count > 0)
-            {
-                GetSelectedRangeIntersection(out int selMin, out int selMax);
-                if (!IsSimulSelectableByRange(index, selMin, selMax))
-                {
-                    // ★ここ
-                    ForceStatus("選択不可", statusFailColor);
-                    PlaySE(seFail);
-                    return;
-                }
-            }
-
-            // ここまで来たら追加OK
-            bool wasEmpty = (selectedSet.Count == 0);
-            selectedSet.Add(index);
-
-            if (wasEmpty)
-            {
-                inputBuffer.ClearAll();
-                StartTimingIfNeeded();
-            }
-        }
+        ToggleMultiSelect(index);
 
         // 0件になったら入力不可
         if (selectedSet.Count == 0)
@@ -352,6 +320,64 @@ public class GameManager : MonoBehaviour
         RefreshUI();
     }
 
+    private void SelectSingle(int index)
+    {
+        selectedSet.Clear();
+        selectedSet.Add(index);
+
+        inputBuffer.ClearAll();
+        StartTimingIfNeeded();
+
+        ClearForcedStatus();
+
+        if (EventSystem.current != null)
+            EventSystem.current.SetSelectedGameObject(null);
+
+        RefreshUI();
+    }
+
+    private void ToggleMultiSelect(int index)
+    {
+        if (selectedSet.Contains(index))
+        {
+            selectedSet.Remove(index);
+            return;
+        }
+
+        // ① 範囲外防止
+        if (index < 0 || index >= challengeButtons.Count) return;
+
+        // ② 出現中/選択不可のボタンは弾く
+        var btn = challengeButtons[index];
+        if (btn == null || !btn.IsSimulSelectable)
+        {
+            ForceStatus("選択不可", statusFailColor);
+            PlaySE(seFail);
+            return;
+        }
+
+        // ③ レンジ不一致（キー数が同時に満たせない）
+        if (selectedSet.Count > 0)
+        {
+            GetSelectedRangeIntersection(out int selMin, out int selMax);
+            if (!IsSimulSelectableByRange(index, selMin, selMax))
+            {
+                ForceStatus("選択不可", statusFailColor);
+                PlaySE(seFail);
+                return;
+            }
+        }
+
+        bool wasEmpty = (selectedSet.Count == 0);
+        selectedSet.Add(index);
+
+        if (wasEmpty)
+        {
+            inputBuffer.ClearAll();
+            StartTimingIfNeeded();
+        }
+    }
+
     private void StartTimingIfNeeded()
     {
         if (!startTimerOnSelect) return;
@@ -359,16 +385,25 @@ public class GameManager : MonoBehaviour
         hasStartedTiming = true;
     }
 
-    private void ClearSelection()
+    // ==============================
+    // 選択解除
+    // ==============================
+    private void ClearSelectionAll()
     {
         selectedSet.Clear();
         inputBuffer.AcceptInput = false;
 
         // 見た目解除
+        ClearSelectionVisualOnly();
+    }
+
+    private void ClearSelectionVisualOnly()
+    {
         for (int i = 0; i < challengeButtons.Count; i++)
         {
             challengeButtons[i].SetSelected(false);
             challengeButtons[i].SetExcluded(false);
+            challengeButtons[i].ResetProgress();
         }
     }
 
@@ -427,13 +462,15 @@ public class GameManager : MonoBehaviour
         if (textTyped != null)
             textTyped.text = BuildTypedHistoryColoredTextForSelected();
 
+        // ★ 修正：未定義変数を排除し、このスコープの値でUpdateProgressする
         var typedSet = new HashSet<char>(inputBuffer.TypedChars);
         int now = inputBuffer.LetterCount;
+        bool isInputting = (!isTimeUp && selectedSet.Count > 0 && now > 0);
 
         // 選択中レンジの共通部分
         GetSelectedRangeIntersection(out int selMin, out int selMax);
 
-        // ボタン更新（★選択色の上書き防止：sel==true には SetExcluded を呼ばない）
+        // ボタン更新（sel==true には SetExcluded を呼ばない）
         for (int i = 0; i < challengeButtons.Count; i++)
         {
             bool sel = selectedSet.Contains(i);
@@ -450,7 +487,7 @@ public class GameManager : MonoBehaviour
                 btn.SetExcluded(excluded);
             }
 
-            if (sel) btn.UpdateProgress(now, typedSet);
+            if (sel) btn.UpdateProgress(now, typedSet, isInputting);
             else btn.ResetProgress();
         }
     }
@@ -479,6 +516,7 @@ public class GameManager : MonoBehaviour
     {
         seconds = Mathf.Max(0f, seconds);
 
+        // 1分以上は 1:30 表記
         if (seconds >= 60f)
         {
             int m = Mathf.FloorToInt(seconds / 60f);
@@ -486,6 +524,7 @@ public class GameManager : MonoBehaviour
             return $"{m}:{s:00}";
         }
 
+        // 1分未満は 59.9 表記
         return $"{seconds:F1}";
     }
 
@@ -560,6 +599,7 @@ public class GameManager : MonoBehaviour
         float fast = Mathf.Max(0.01f, fastTimeSeconds);
         float slow = Mathf.Max(fast + 0.01f, slowTimeSeconds);
 
+        // elapsed が fast に近いほど 1 に近づく（速いほど大きい）
         float k = Mathf.InverseLerp(slow, fast, elapsed);
         float m = Mathf.Lerp(minTimeMultiplier, maxTimeMultiplier, k);
         return Mathf.Clamp(m, minTimeMultiplier, maxTimeMultiplier);
@@ -584,14 +624,17 @@ public class GameManager : MonoBehaviour
         {
             if (index < 0 || index >= challengeButtons.Count) continue;
 
+            // データ置換
             challenges[index] = ChallengeGenerator.Create();
 
+            // 位置維持
             var oldItem = challengeButtons[index];
             int sibling = oldItem != null ? oldItem.transform.GetSiblingIndex() : index;
 
             if (oldItem != null)
                 Destroy(oldItem.gameObject);
 
+            // 新規生成
             var newItem = Instantiate(challengeButtonPrefab, challengeListParent);
             newItem.transform.SetSiblingIndex(sibling);
 
@@ -599,11 +642,32 @@ public class GameManager : MonoBehaviour
             newItem.SetSelected(false);
             newItem.SetExcluded(false);
 
+            // ★ 出現中は選択不可（100%生成されるまで）
+            newItem.SetSimulSelectable(false);
+
             challengeButtons[index] = newItem;
 
-            // 100%生成されるまで選択不可
+            // 出現演出
             newItem.BeginReveal(challengeRevealSeconds);
+
+            // 出現完了後に選択可能へ
+            StartCoroutine(EnableAfterReveal(newItem, challengeRevealSeconds));
         }
+    }
+
+    private IEnumerator EnableAfterReveal(ChallengeButtonItem item, float duration)
+    {
+        if (item == null) yield break;
+
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            yield return null;
+        }
+
+        if (item != null)
+            item.SetSimulSelectable(true);
     }
 
     // ==============================
