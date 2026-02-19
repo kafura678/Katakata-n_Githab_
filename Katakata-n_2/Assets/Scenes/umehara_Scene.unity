@@ -555,6 +555,68 @@ MonoBehaviour:
   - {fileID: 1853282468}
   - {fileID: 1616853394}
   - {fileID: 185094689}
+--- !u!1 &356342148
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 356342150}
+  - component: {fileID: 356342149}
+  m_Layer: 0
+  m_Name: GameTimer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &356342149
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 356342148}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83301af43a6cb428299f72b44c80a7b8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameTimer
+  timeLimitSeconds: 180
+  textTime: {fileID: 1128723987}
+  prefix: "\u6B8B\u308A\u6642\u9593\uFF1A"
+  onTimeUp:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 1469850070}
+        m_TargetAssemblyTypeName: GameManager, Assembly-CSharp
+        m_MethodName: HandleTimeUp
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!4 &356342150
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 356342148}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &444091600
 GameObject:
   m_ObjectHideFlags: 0
@@ -1441,9 +1503,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   inputBuffer: {fileID: 1469850069}
+  gameTimer: {fileID: 356342149}
   enemyView: {fileID: 984108529}
   enemy: {fileID: 352567195}
-  enemyManager: {fileID: 352567196}
   textEnemySuppression: {fileID: 1548815609}
   flow: {fileID: 1811118615}
   textFlowPercent: {fileID: 170395491}
@@ -1454,12 +1516,9 @@ MonoBehaviour:
   textCount: {fileID: 562303787}
   textTyped: {fileID: 1828253681}
   textStatus: {fileID: 213016649}
-  textTime: {fileID: 1128723987}
   challengeListParent: {fileID: 737247310}
   challengeButtonPrefab: {fileID: 6662481253911293588, guid: df8642a0ba14649a3ae302d73c9efb72, type: 3}
   challengeSlots: 6
-  gameTimeLimitSeconds: 180
-  timeUpMessage: "\u6642\u9593\u5207\u308C"
   sendResultHoldSeconds: 1
   statusNormalColor: {r: 1, g: 1, b: 1, a: 1}
   statusSuccessColor: {r: 0, g: 1, b: 0, a: 1}
@@ -1477,6 +1536,7 @@ MonoBehaviour:
   maxDamageSimulMultiplier: 5
   maxFlowSimulMultiplier: 5
   challengeRevealSeconds: 0.5
+  timeUpMessage: "\u6642\u9593\u5207\u308C"
 --- !u!1 &1548815607
 GameObject:
   m_ObjectHideFlags: 0
@@ -2109,3 +2169,4 @@ SceneRoots:
   - {fileID: 444091604}
   - {fileID: 1811118614}
   - {fileID: 1469850068}
+  - {fileID: 356342150}
