@@ -1,22 +1,32 @@
-Shader "UI/SuppressionRadialBlock_AlphaAware"
+Shader "UI/SuppressionRadialBlock"
 {
     Properties
     {
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
         _Color ("Tint", Color) = (1,1,1,1)
 
-        _Suppression ("Suppression", Range(0,1)) = 0
+        // 制圧率（0=赤、1=青）
+        _Suppression ("Suppression 0-1", Range(0,1)) = 0
 
-        _ColorA ("Low Color", Color) = (1,0,0,1)
-        _ColorB ("High Color", Color) = (0,0.6,1,1)
+        // 侵入口（UV 0-1）
+        _Center ("Center (UV)", Vector) = (0.5, 0.5, 0, 0)
 
-        _Center ("Radial Center", Vector) = (0.5,0.5,0,0)
-
+        // ブロック粗さ（大きいほど細かい）
         _BlockCount ("Block Count", Range(4,128)) = 32
-        _NoiseStrength ("Noise Strength", Range(0,1)) = 0.15
 
-        _EdgeWidth ("Edge Width", Range(0.001,0.2)) = 0.03
-        _EdgeColor ("Edge Color", Color) = (0,0,0,1)
+        // ランダム侵食
+        _NoiseScale ("Noise Scale", Range(1,64)) = 16
+        _NoiseStrength ("Noise Strength", Range(0,1)) = 0.25
+
+        // 境界の黒
+        _BorderWidth ("Border Width", Range(0,0.25)) = 0.03
+        _BorderStrength ("Border Strength", Range(0,2)) = 1.0
+
+        // 送信1回の「じわ」演出（0=無し、1=強）
+        _Pulse ("Send Pulse", Range(0,1)) = 0
+
+        // アルファ内だけ描画（通常はSpriteのアルファでOK）
+        _AlphaCut ("Alpha Cut", Range(0,1)) = 0.01
     }
 
     SubShader
@@ -26,6 +36,7 @@ Shader "UI/SuppressionRadialBlock_AlphaAware"
             "Queue"="Transparent"
             "IgnoreProjector"="True"
             "RenderType"="Transparent"
+            "PreviewType"="Plane"
             "CanUseSpriteAtlas"="True"
         }
 
@@ -41,102 +52,100 @@ Shader "UI/SuppressionRadialBlock_AlphaAware"
             #pragma fragment frag
             #include "UnityCG.cginc"
 
-            sampler2D _MainTex;
-            fixed4 _Color;
-
-            float _Suppression;
-            fixed4 _ColorA;
-            fixed4 _ColorB;
-            float4 _Center;
-            float _BlockCount;
-            float _NoiseStrength;
-            float _EdgeWidth;
-            fixed4 _EdgeColor;
-
-            struct appdata
+            struct appdata_t
             {
-                float4 vertex : POSITION;
-                float2 uv     : TEXCOORD0;
-                fixed4 color  : COLOR;
+                float4 vertex   : POSITION;
+                float4 color    : COLOR;
+                float2 texcoord : TEXCOORD0;
             };
 
             struct v2f
             {
-                float4 vertex : SV_POSITION;
-                float2 uv     : TEXCOORD0;
-                fixed4 color  : COLOR;
+                float4 vertex   : SV_POSITION;
+                fixed4 color    : COLOR;
+                float2 uv       : TEXCOORD0;
             };
 
-            v2f vert(appdata v)
+            sampler2D _MainTex;
+            fixed4 _Color;
+
+            float _Suppression;
+            float4 _Center;
+
+            float _BlockCount;
+            float _NoiseScale;
+            float _NoiseStrength;
+
+            float _BorderWidth;
+            float _BorderStrength;
+
+            float _Pulse;
+            float _AlphaCut;
+
+            v2f vert(appdata_t IN)
             {
-                v2f o;
-                o.vertex = UnityObjectToClipPos(v.vertex);
-                o.uv = v.uv;
-                o.color = v.color * _Color;
-                return o;
+                v2f OUT;
+                OUT.vertex = UnityObjectToClipPos(IN.vertex);
+                OUT.uv = IN.texcoord;
+                OUT.color = IN.color * _Color;
+                return OUT;
             }
 
-            float2 BlockUV(float2 uv, float blockCount)
+            // 0-1 hash
+            float hash21(float2 p)
             {
-                return floor(uv * blockCount) / blockCount;
-            }
-
-            float Hash21(float2 p)
-            {
-                p = frac(p * float2(123.34, 345.45));
-                p += dot(p, p + 34.345);
+                p = frac(p * float2(123.34, 456.21));
+                p += dot(p, p + 45.32);
                 return frac(p.x * p.y);
             }
 
-            fixed4 frag(v2f i) : SV_Target
+            fixed4 frag(v2f IN) : SV_Target
             {
-                fixed4 tex = tex2D(_MainTex, i.uv) * i.color;
+                fixed4 tex = tex2D(_MainTex, IN.uv) * IN.color;
 
-                // ★ 完全透明なら描画不要
-                if (tex.a <= 0.001)
-                    return fixed4(0,0,0,0);
+                // 透明は捨てる（クリック/見た目の安定）
+                if (tex.a <= _AlphaCut) discard;
 
-                float2 buv = BlockUV(i.uv, _BlockCount);
+                // ブロック化UV
+                float2 bc = max(4.0, _BlockCount).xx;
+                float2 cell = floor(IN.uv * bc);
+                float2 cellUV = (cell + 0.5) / bc;     // セル中心
+                float2 local = frac(IN.uv * bc);       // セル内
 
+                // 侵入口
                 float2 c = _Center.xy;
-                float dist = distance(buv, c);
 
-                // 中心から四隅までの最大距離
-                float d1 = distance(c, float2(0,0));
-                float d2 = distance(c, float2(1,0));
-                float d3 = distance(c, float2(0,1));
-                float d4 = distance(c, float2(1,1));
+                // 放射距離（セル中心から計算：ブロック単位で反転しやすい）
+                float d = distance(cellUV, c);
 
-                float maxRadius = max(max(d1, d2), max(d3, d4));
+                // 正規化距離（ざっくり。最大を sqrt(2) として 0-1へ）
+                float dn = saturate(d / 1.41421356);
 
-                float radial = saturate(dist / maxRadius);
+                // ランダム侵食：セルごとに乱数
+                float n = hash21(cell * _NoiseScale);
 
-                float noise = Hash21(buv) * _NoiseStrength;
+                // Pulse でノイズ強度を増やす（送信演出）
+                float noiseStr = saturate(_NoiseStrength + _Pulse * 0.35);
+                float jitter = (n - 0.5) * noiseStr;
 
-                float value = saturate(radial + noise);
+                // 侵食境界：Suppression が大きいほど「青」が増える
+                // dn + jitter < _Suppression なら青、そうでなければ赤
+                float t = dn + jitter;
+                float fill = step(t, _Suppression);
 
-                float threshold = saturate(_Suppression);
+                // 色（赤→青）
+                float3 colR = float3(1,0,0);
+                float3 colB = float3(0,0.55,1);
+                float3 baseCol = lerp(colR, colB, fill);
 
-                // ★ 100%時は強制完全塗り
-                if (threshold >= 0.999)
-                {
-                    fixed4 full = _ColorB;
-                    full.a *= tex.a;
-                    return full;
-                }
+                // 境界（黒）：
+                // step境界付近（t ≒ _Suppression）を黒くする
+                float bw = saturate(_BorderWidth + _Pulse * 0.02);
+                float edge = 1.0 - smoothstep(0.0, bw, abs(t - _Suppression));
+                float3 withBorder = lerp(baseCol, float3(0,0,0), edge * saturate(_BorderStrength));
 
-                float fill = step(value, threshold);
-
-                fixed4 baseCol = lerp(_ColorA, _ColorB, fill);
-
-                float diff = abs(value - threshold);
-                float edgeMask = step(diff, _EdgeWidth);
-
-                baseCol = lerp(baseCol, _EdgeColor, edgeMask);
-
-                baseCol.a *= tex.a;
-
-                return baseCol;
+                tex.rgb = withBorder;
+                return tex;
             }
             ENDCG
         }

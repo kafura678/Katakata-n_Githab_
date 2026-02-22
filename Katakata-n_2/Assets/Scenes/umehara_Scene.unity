@@ -409,11 +409,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ce6d4ab2b409455ca8420cafd0e0028, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
+  baseMaterial: {fileID: 2100000, guid: d82dc91c424d449828d76e81c36e5ea0, type: 2}
   maxSuppression: 100
   maxFillSpeedPerSecond: 0.35
+  obeyGlobalPause: 1
   missingCorner: 0
   cornerBias: 0.3
   alphaHitThreshold: 0.1
+  debugPingPong: 0
+  debugLogOnce: 1
 --- !u!114 &185094690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1325,11 +1329,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ce6d4ab2b409455ca8420cafd0e0028, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
+  baseMaterial: {fileID: 2100000, guid: d82dc91c424d449828d76e81c36e5ea0, type: 2}
   maxSuppression: 100
   maxFillSpeedPerSecond: 0.35
+  obeyGlobalPause: 1
   missingCorner: 3
   cornerBias: 0
   alphaHitThreshold: 0.1
+  debugPingPong: 0
+  debugLogOnce: 1
 --- !u!114 &766049626
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1543,18 +1551,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b20c47f0dde14d8ca17f096a2ceeda4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUISuppressionView
-  enemy: {fileID: 352567195}
-  useRandomCenter: 0
-  manualCenter: {x: 1, y: 1}
-  centerRandomRange: 0.3
-  blocksPerAxis: 25
-  snapCenterToBlock: 1
-  perSendDuration: 0.45
-  easeStrength: 0.352
-  useSmoothStepEase: 1
-  quantizeProgressToBlocks: 1
-  progressSteps: 128
-  changeCenterOnSuccess: 0
+  enemyManager: {fileID: 0}
+  pulsePeak: 1
+  pulseDuration: 0.25
+  obeyGlobalPause: 0
 --- !u!1 &1128723985
 GameObject:
   m_ObjectHideFlags: 0
@@ -1693,12 +1693,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   inputBuffer: {fileID: 1469850069}
-  gameTimer: {fileID: 356342149}
+  enemyManager: {fileID: 352567196}
   enemyView: {fileID: 984108529}
-  enemy: {fileID: 352567195}
   textEnemySuppression: {fileID: 1548815609}
   flow: {fileID: 1811118615}
   textFlowPercent: {fileID: 170395491}
+  gameTimer: {fileID: 356342149}
+  textTime: {fileID: 0}
   seSource: {fileID: 0}
   seSuccess: {fileID: 0}
   seFail: {fileID: 0}
@@ -1726,7 +1727,6 @@ MonoBehaviour:
   maxDamageSimulMultiplier: 5
   maxFlowSimulMultiplier: 5
   challengeRevealSeconds: 0.5
-  timeUpMessage: "\u6642\u9593\u5207\u308C"
 --- !u!1 &1548815607
 GameObject:
   m_ObjectHideFlags: 0
@@ -1951,11 +1951,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ce6d4ab2b409455ca8420cafd0e0028, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
+  baseMaterial: {fileID: 2100000, guid: d82dc91c424d449828d76e81c36e5ea0, type: 2}
   maxSuppression: 100
   maxFillSpeedPerSecond: 0.35
+  obeyGlobalPause: 1
   missingCorner: 1
   cornerBias: 0.3
   alphaHitThreshold: 0.1
+  debugPingPong: 0
+  debugLogOnce: 1
 --- !u!114 &1616853395
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2091,11 +2095,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ce6d4ab2b409455ca8420cafd0e0028, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
+  baseMaterial: {fileID: 2100000, guid: d82dc91c424d449828d76e81c36e5ea0, type: 2}
   maxSuppression: 100
   maxFillSpeedPerSecond: 0.35
+  obeyGlobalPause: 1
   missingCorner: 0
   cornerBias: 0.3
   alphaHitThreshold: 0.1
+  debugPingPong: 0
+  debugLogOnce: 1
 --- !u!114 &1685705315
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2355,11 +2363,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ce6d4ab2b409455ca8420cafd0e0028, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
+  baseMaterial: {fileID: 2100000, guid: d82dc91c424d449828d76e81c36e5ea0, type: 2}
   maxSuppression: 100
   maxFillSpeedPerSecond: 0.35
+  obeyGlobalPause: 1
   missingCorner: 2
   cornerBias: 0.3
   alphaHitThreshold: 0.1
+  debugPingPong: 0
+  debugLogOnce: 1
 --- !u!114 &1853282469
 MonoBehaviour:
   m_ObjectHideFlags: 0
