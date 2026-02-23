@@ -28,6 +28,8 @@ public class EnemyUnit : MonoBehaviour, IPointerClickHandler
     // ==============================
     // 参照
     // ==============================
+    [SerializeField] private InterferenceManager interferenceManager;
+
     [Header("参照（見た目のImage）")]
     [Tooltip("親子構造なら実際に表示している子Imageを指定")]
     [SerializeField] private Image targetImage;
@@ -172,6 +174,8 @@ public class EnemyUnit : MonoBehaviour, IPointerClickHandler
     // ==============================
     public void OnPointerClick(PointerEventData eventData)
     {
+        if (interferenceManager != null && interferenceManager.IsBlockingInput) return;
+
         if (enemyManager != null)
             enemyManager.SelectTarget(this);
     }

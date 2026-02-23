@@ -11,6 +11,7 @@ public class GameManager : MonoBehaviour
     // ==============================
     [Header("参照")]
     [SerializeField] private InputBuffer inputBuffer;
+    [SerializeField] private InterferenceManager interferenceManager;
 
     [Header("敵（UI Image侵食）")]
     [SerializeField] private EnemyManager enemyManager;
@@ -135,6 +136,15 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        // 妨害中（入力ブロック）なら、送信や入力を無効化
+        if (interferenceManager != null && interferenceManager.IsBlockingInput)
+        {
+            inputBuffer.AcceptInput = false;   // 入力自体を受けない
+                                               // 送信もさせない（Enter処理へ行かない）
+            RefreshUI();                       // 状態表示などは更新
+            return;
+        }
+
         // 全体ポーズ（必要なら）
         if (PauseManager.IsPaused)
             return;
