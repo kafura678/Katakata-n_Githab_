@@ -22,10 +22,10 @@ Shader "UI/SuppressionRadialBlock"
         _BorderWidth ("Border Width", Range(0,0.25)) = 0.03
         _BorderStrength ("Border Strength", Range(0,2)) = 1.0
 
-        // 送信1回の「じわ」演出（0=無し、1=強）
+        // 送信1回の演出（0=無し、1=強）
         _Pulse ("Send Pulse", Range(0,1)) = 0
 
-        // アルファ内だけ描画（通常はSpriteのアルファでOK）
+        // 透明を捨てる閾値
         _AlphaCut ("Alpha Cut", Range(0,1)) = 0.01
     }
 
@@ -91,7 +91,7 @@ Shader "UI/SuppressionRadialBlock"
                 return OUT;
             }
 
-            // 0-1 hash
+            // 0..1 hash（セルごとの乱数）
             float hash21(float2 p)
             {
                 p = frac(p * float2(123.34, 456.21));
@@ -103,45 +103,67 @@ Shader "UI/SuppressionRadialBlock"
             {
                 fixed4 tex = tex2D(_MainTex, IN.uv) * IN.color;
 
-                // 透明は捨てる（クリック/見た目の安定）
+                // 透明は捨てる（見た目とクリック安定）
                 if (tex.a <= _AlphaCut) discard;
 
-                // ブロック化UV
+                // --------------------------
+                // ブロック化
+                // --------------------------
                 float2 bc = max(4.0, _BlockCount).xx;
                 float2 cell = floor(IN.uv * bc);
-                float2 cellUV = (cell + 0.5) / bc;     // セル中心
-                float2 local = frac(IN.uv * bc);       // セル内
+                float2 cellUV = (cell + 0.5) / bc;   // セル中心UV
 
-                // 侵入口
+                // 侵入口（UV）
                 float2 c = _Center.xy;
 
                 // 放射距離（セル中心から計算：ブロック単位で反転しやすい）
                 float d = distance(cellUV, c);
 
-                // 正規化距離（ざっくり。最大を sqrt(2) として 0-1へ）
+                // 正規化距離（最大を sqrt(2) として 0..1）
                 float dn = saturate(d / 1.41421356);
 
-                // ランダム侵食：セルごとに乱数
+                // --------------------------
+                // ランダム侵食（セル単位）
+                // --------------------------
                 float n = hash21(cell * _NoiseScale);
 
-                // Pulse でノイズ強度を増やす（送信演出）
+                // Pulseでノイズ強度を一時的に増やす
                 float noiseStr = saturate(_NoiseStrength + _Pulse * 0.35);
                 float jitter = (n - 0.5) * noiseStr;
 
-                // 侵食境界：Suppression が大きいほど「青」が増える
-                // dn + jitter < _Suppression なら青、そうでなければ赤
-                float t = dn + jitter;
-                float fill = step(t, _Suppression);
+                // ★重要：dn+jitter を 0..1 に収める（端で欠けない）
+                float t = saturate(dn + jitter);
 
+                // 制圧率も 0..1 にクランプ
+                float s = saturate(_Suppression);
+
+                // 侵食（t <= s なら青）
+                float fill = step(t, s);
+
+                // ★端の保証：0%は全赤、100%は全青（誤差対策込み）
+                fill = (s <= 0.0001) ? 0.0 : fill;
+                fill = (s >= 0.9999) ? 1.0 : fill;
+
+                // --------------------------
                 // 色（赤→青）
-                float3 colR = float3(1,0,0);
-                float3 colB = float3(0,0.55,1);
+                // --------------------------
+                float3 colR = float3(1, 0, 0);
+                float3 colB = float3(0, 0.55, 1);
                 float3 baseCol = lerp(colR, colB, fill);
 
-                // 境界（黒）：
-                // step境界付近（t ≒ _Suppression）を黒くする
+                // --------------------------
+                // 境界（黒）
+                // --------------------------
                 float bw = saturate(_BorderWidth + _Pulse * 0.02);
-                float edge = 1.0 - smoothstep(0.0, bw, abs(t - _Suppression));
+
+                // t ≒ s 付近を黒くする
+                float edge = 1.0 - smoothstep(0.0, bw, abs(t - s));
+
+                // ★0%/100%のときは境界黒を消す（完全単色にする）
+                // sが(0,1)の範囲のときだけ edge を有効化
+                float endMask = step(0.0001, s) * step(s, 0.9999);
+                edge *= endMask;
+
                 float3 withBorder = lerp(baseCol, float3(0,0,0), edge * saturate(_BorderStrength));
 
                 tex.rgb = withBorder;

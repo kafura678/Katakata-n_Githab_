@@ -409,15 +409,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ce6d4ab2b409455ca8420cafd0e0028, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
+  targetImage: {fileID: 0}
+  targetRect: {fileID: 0}
   baseMaterial: {fileID: 2100000, guid: d82dc91c424d449828d76e81c36e5ea0, type: 2}
   maxSuppression: 100
   maxFillSpeedPerSecond: 0.35
   obeyGlobalPause: 1
+  centerMode: 0
   missingCorner: 0
   cornerBias: 0.3
+  manualCenterUV: {x: 0.5, y: 0.5}
+  manualCenterLocal: {x: 0, y: 0}
   alphaHitThreshold: 0.1
-  debugPingPong: 0
-  debugLogOnce: 1
 --- !u!114 &185094690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -715,7 +718,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ff292afff41b4bbe85287a8ddc0bfcf, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MultiTimer
-  durationSeconds: 60
+  durationSeconds: 1000
   autoStart: 1
   obeyGlobalPause: 1
   localPaused: 0
@@ -1329,15 +1332,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ce6d4ab2b409455ca8420cafd0e0028, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
+  targetImage: {fileID: 0}
+  targetRect: {fileID: 0}
   baseMaterial: {fileID: 2100000, guid: d82dc91c424d449828d76e81c36e5ea0, type: 2}
   maxSuppression: 100
   maxFillSpeedPerSecond: 0.35
   obeyGlobalPause: 1
-  missingCorner: 3
-  cornerBias: 0
+  centerMode: 0
+  missingCorner: 0
+  cornerBias: 0.3
+  manualCenterUV: {x: 0.5, y: 0.5}
+  manualCenterLocal: {x: 0, y: 0}
   alphaHitThreshold: 0.1
-  debugPingPong: 0
-  debugLogOnce: 1
 --- !u!114 &766049626
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1951,15 +1957,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ce6d4ab2b409455ca8420cafd0e0028, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
+  targetImage: {fileID: 0}
+  targetRect: {fileID: 0}
   baseMaterial: {fileID: 2100000, guid: d82dc91c424d449828d76e81c36e5ea0, type: 2}
   maxSuppression: 100
   maxFillSpeedPerSecond: 0.35
   obeyGlobalPause: 1
-  missingCorner: 1
+  centerMode: 0
+  missingCorner: 0
   cornerBias: 0.3
+  manualCenterUV: {x: 0.5, y: 0.5}
+  manualCenterLocal: {x: 0, y: 0}
   alphaHitThreshold: 0.1
-  debugPingPong: 0
-  debugLogOnce: 1
 --- !u!114 &1616853395
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2095,15 +2104,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ce6d4ab2b409455ca8420cafd0e0028, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
+  targetImage: {fileID: 0}
+  targetRect: {fileID: 0}
   baseMaterial: {fileID: 2100000, guid: d82dc91c424d449828d76e81c36e5ea0, type: 2}
   maxSuppression: 100
   maxFillSpeedPerSecond: 0.35
   obeyGlobalPause: 1
+  centerMode: 0
   missingCorner: 0
   cornerBias: 0.3
+  manualCenterUV: {x: 0.5, y: 0.5}
+  manualCenterLocal: {x: 0, y: 0}
   alphaHitThreshold: 0.1
-  debugPingPong: 0
-  debugLogOnce: 1
 --- !u!114 &1685705315
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2363,15 +2375,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4ce6d4ab2b409455ca8420cafd0e0028, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EnemyUnit
+  targetImage: {fileID: 1853282469}
+  targetRect: {fileID: 0}
   baseMaterial: {fileID: 2100000, guid: d82dc91c424d449828d76e81c36e5ea0, type: 2}
   maxSuppression: 100
   maxFillSpeedPerSecond: 0.35
   obeyGlobalPause: 1
+  centerMode: 0
   missingCorner: 2
-  cornerBias: 0.3
+  cornerBias: 0
+  manualCenterUV: {x: 0.5, y: 0.5}
+  manualCenterLocal: {x: 0, y: 0}
   alphaHitThreshold: 0.1
-  debugPingPong: 0
-  debugLogOnce: 1
 --- !u!114 &1853282469
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2392,7 +2407,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 297761703447499198, guid: d7ea5bf2524a74c3a858c9413f7058d9, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
