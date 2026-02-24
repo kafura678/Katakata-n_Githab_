@@ -1774,7 +1774,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66f9314a8c3ad4bba9a274387f4d42f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InterferenceManager
-  intervalRangeSeconds: {x: 8, y: 14}
+  intervalRangeSeconds: {x: 30, y: 40}
   interferenceComponents:
   - {fileID: 1379683915}
   allowOverlap: 0
@@ -1853,14 +1853,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   inputBuffer: {fileID: 1469850069}
-  interferenceManager: {fileID: 0}
-  enemyManager: {fileID: 352567196}
+  gameTimer: {fileID: 356342149}
   enemyView: {fileID: 984108529}
+  flowModeManager: {fileID: 811482985}
+  enemy: {fileID: 0}
   textEnemySuppression: {fileID: 1548815609}
   flow: {fileID: 1811118615}
   textFlowPercent: {fileID: 170395491}
-  gameTimer: {fileID: 356342149}
-  textTime: {fileID: 0}
   seSource: {fileID: 0}
   seSuccess: {fileID: 0}
   seFail: {fileID: 0}
@@ -1888,6 +1887,7 @@ MonoBehaviour:
   maxDamageSimulMultiplier: 5
   maxFlowSimulMultiplier: 5
   challengeRevealSeconds: 0.5
+  timeUpMessage: "\u6642\u9593\u5207\u308C"
 --- !u!1 &1548815607
 GameObject:
   m_ObjectHideFlags: 0
