@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 
 public class flowModeManager : MonoBehaviour
 {
@@ -9,6 +10,7 @@ public class flowModeManager : MonoBehaviour
     [SerializeField] private PauseManager pauseManager;
     [SerializeField] private FlowSystem flowSystem;
 
+    private Action onFlowModeTransitioned;
     private flowModeTransition transition;
     private flowModeTime time;
     void Awake()
@@ -17,19 +19,25 @@ public class flowModeManager : MonoBehaviour
         time = new flowModeTime();
 
         time.SetFlowTime(flowModeDuration);
-        transition.setFlowModeEvent(OnFlowModeActivated);
+        transition.setFlowModeActivateEvent(OnFlowModeActivated);
+        transition.setFlowModeDeactivateEvent(OnFlowModeDeactivated);
     }
 
     void Update()
     {
-        if (transition.isFlowModeActive)
-        {
-            time.UpdateFlowMode(Time.deltaTime);
-        }
-        else
+        if (flowModeStatus.state == flowModeState.normal)
         {
             transition.tryFlowMode(flowSystem.Percent);
+        }
+        else if (flowModeStatus.state == flowModeState.canFlowMode)
+        {
             transition.tryFlowModeStart();
+        }
+        else if (flowModeStatus.state == flowModeState.isFlowModeActive)
+        {
+            time.UpdateFlowMode(Time.deltaTime);
+            if (time.GetFlowTimeLeft() <= 0f)
+                transition.flowSendModeStart();
         }
     }
 
@@ -40,5 +48,27 @@ public class flowModeManager : MonoBehaviour
 
         //ゲーム制限時間を停止
         pauseManager.PauseGameTimer();
+
+        //フローモード遷移イベント
+        onFlowModeTransitioned?.Invoke();
+    }
+
+    private void OnFlowModeDeactivated()
+    {
+        //ゲーム制限時間を再開
+        pauseManager.ResumeGameTimer();
+
+        //フローモード遷移イベント
+        onFlowModeTransitioned?.Invoke();
+    }
+
+    public void OnFlowModeDeactivate()
+    {
+        transition.flowModeDeactivated();
+    }
+
+    public void setOnFlowModeTransitioned(Action onFlowModeTransitioned)
+    {
+        this.onFlowModeTransitioned += onFlowModeTransitioned;
     }
 }

@@ -13,6 +13,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private InputBuffer inputBuffer;
     [SerializeField] private GameTimer gameTimer;                 // ★制限時間（分離）
     [SerializeField] private EnemyUISuppressionView enemyView;
+    [SerializeField] private flowModeManager flowModeManager; // ★フローモード管理（分離）
 
     [Header("敵")]
     [SerializeField] private EnemySystem enemy;
@@ -116,6 +117,9 @@ public class GameManager : MonoBehaviour
     private Color forcedStatusColor = Color.white;
     private float forcedStatusUntil = 0f;
 
+    //フローモード中に成功したお題の数
+    private int flowModeSuccessCount = 0;
+
     // 入力時間計測
     private float challengeStartTime = 0f;
     private bool hasStartedTiming = false;
@@ -129,6 +133,15 @@ public class GameManager : MonoBehaviour
         BuildChallengeListUI();
         ClearSelection();
         RefreshUI();
+
+        //フローモード遷移のイベント登録
+        if (flowModeManager != null)
+        {
+            flowModeManager.setOnFlowModeTransitioned(GenerateChallenges);
+            flowModeManager.setOnFlowModeTransitioned(BuildChallengeListUI);
+            flowModeManager.setOnFlowModeTransitioned(ClearSelection);
+            flowModeManager.setOnFlowModeTransitioned(RefreshUI);
+        }
     }
 
     void Update()
@@ -143,8 +156,38 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        // ===== フローモード送信 =====
+        if (flowModeStatus.state == flowModeState.isFlowSendModeActive)
+        {
+            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+            {
+                successExection();
+                flowModeSuccessCount--;
+                if (flowModeSuccessCount <= 0)
+                {
+                    flowModeManager.OnFlowModeDeactivate();
+                }
+            }
+
+            RefreshUI();
+            return;
+        }
+
         // ===== 入力更新 =====
         inputBuffer.Tick();
+
+        // ===== フローモード中は常に成功扱い（ただし送信しない） =====
+        if (flowModeStatus.state == flowModeState.isFlowModeActive)
+        {
+            if (IsSendableForAllSelected())
+            {
+                challengeRefresh();
+                flowModeSuccessCount++;
+
+                RefreshUI();
+                return;
+            }
+        }
 
         // 選択が無ければ送信しない
         if (selectedSet.Count == 0)
@@ -193,6 +236,12 @@ public class GameManager : MonoBehaviour
     // ==============================
     private void OnSendSuccess()
     {
+        successExection();
+        challengeRefresh();
+    }
+
+    private void successExection()
+    {
         ForceStatus("送信成功", statusSuccessColor);
         PlaySE(seSuccess);
 
@@ -212,7 +261,10 @@ public class GameManager : MonoBehaviour
             float timeMult = CalcTimeMultiplier(elapsed);
             flow.Add(flowGainOnSuccess * timeMult * flowMult);
         }
+    }
 
+    private void challengeRefresh()
+    {
         // 成功したお題を置換（出現演出で選択不可→可）
         ReplaceSelectedChallengesWithReveal();
 
@@ -246,7 +298,16 @@ public class GameManager : MonoBehaviour
     {
         challenges.Clear();
         for (int i = 0; i < challengeSlots; i++)
+        {
             challenges.Add(ChallengeGenerator.Create());
+
+            if (flowModeStatus.state == flowModeState.isFlowModeActive)
+            {
+                // フローモード中は必要キーなしにする
+                var c = challenges[i];
+                c.requiredKeys.Clear();
+            }
+        }
     }
 
     private void BuildChallengeListUI()
@@ -367,6 +428,13 @@ public class GameManager : MonoBehaviour
         {
             challengeButtons[i].SetSelected(false);
             challengeButtons[i].SetExcluded(false);
+        }
+
+        if (flowModeStatus.state == flowModeState.isFlowModeActive)
+        {
+            //フローモード中はランダムに選択
+            int idx = Random.Range(0, challenges.Count);
+            selectedSet.Add(idx);
         }
     }
 
@@ -574,6 +642,12 @@ public class GameManager : MonoBehaviour
 
             // お題更新
             challenges[index] = ChallengeGenerator.Create();
+            if (flowModeStatus.state == flowModeState.isFlowModeActive)
+            {
+                // フローモード中は必要キーなしにする
+                var c = challenges[index];
+                c.requiredKeys.Clear();
+            }
 
             var oldItem = challengeButtons[index];
             int sibling = oldItem != null ? oldItem.transform.GetSiblingIndex() : index;

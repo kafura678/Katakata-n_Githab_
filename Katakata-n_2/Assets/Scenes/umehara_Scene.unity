@@ -1695,6 +1695,7 @@ MonoBehaviour:
   inputBuffer: {fileID: 1469850069}
   gameTimer: {fileID: 356342149}
   enemyView: {fileID: 984108529}
+  flowModeManager: {fileID: 811482985}
   enemy: {fileID: 352567195}
   textEnemySuppression: {fileID: 1548815609}
   flow: {fileID: 1811118615}
