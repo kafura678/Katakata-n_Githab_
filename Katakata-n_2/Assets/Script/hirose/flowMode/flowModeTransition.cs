@@ -3,31 +3,47 @@ using System;
 
 public sealed class flowModeTransition
 {
-    private bool canFlowMode = false;
-    public bool isFlowModeActive { get; private set; } = false;
-    private Action flowModeEvent;
-    public void setFlowModeEvent(Action flowModeEvent)
+    private Action flowModeActivateEvent;
+    private Action flowModeDeactivateEvent;
+    void Awake()
     {
-        this.flowModeEvent += flowModeEvent;
+        flowModeStatus.state = flowModeState.normal;
+    }
+    public void setFlowModeActivateEvent(Action flowModeActivateEvent)
+    {
+        this.flowModeActivateEvent += flowModeActivateEvent;
+    }
+    public void setFlowModeDeactivateEvent(Action flowModeDeactivateEvent)
+    {
+        this.flowModeDeactivateEvent += flowModeDeactivateEvent;
     }
     public void tryFlowMode(float flowAmount)
     {
-        if (canFlowMode) return; // すでにフローモードなら何もしない
+        if (flowModeStatus.state == flowModeState.canFlowMode) return; // すでにフローモードなら何もしない
 
         if (flowAmount >= 100f)
         {
-            canFlowMode = true;
+            flowModeStatus.state = flowModeState.canFlowMode;
         }
     }
 
     public void tryFlowModeStart()
     {
-        if (canFlowMode && Input.GetKey(KeyCode.A) && Input.GetKey(KeyCode.LeftShift))
+        if (flowModeStatus.state == flowModeState.canFlowMode && Input.GetKey(KeyCode.A) && Input.GetKey(KeyCode.LeftShift))
         {
-            flowModeEvent?.Invoke();
-
-            isFlowModeActive = true;
-            canFlowMode = false;
+            flowModeStatus.state = flowModeState.isFlowModeActive;
+            flowModeActivateEvent?.Invoke();
         }
+    }
+
+    public void flowSendModeStart()
+    {
+        flowModeStatus.state = flowModeState.isFlowSendModeActive;
+    }
+
+    public void flowModeDeactivated()
+    {
+        flowModeDeactivateEvent?.Invoke();
+        flowModeStatus.state = flowModeState.normal;
     }
 }
