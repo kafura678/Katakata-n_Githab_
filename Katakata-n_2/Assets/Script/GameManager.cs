@@ -181,6 +181,7 @@ public class GameManager : MonoBehaviour
         {
             if (IsSendableForAllSelected())
             {
+                //チャレンジ更新、カウント
                 challengeRefresh();
                 flowModeSuccessCount++;
 
