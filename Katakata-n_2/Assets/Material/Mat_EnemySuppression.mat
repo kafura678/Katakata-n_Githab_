@@ -61,11 +61,14 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _BlockCount: 15
+    - _AlphaCut: 0.01
+    - _BlockCount: 10
     - _BlockSize: 24
     - _Blocks: 64
     - _BorderNoiseAmount: 0.25
     - _BorderNoiseWidth: 0.03
+    - _BorderStrength: 1
+    - _BorderWidth: 0.03
     - _BumpScale: 1
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
@@ -78,10 +81,12 @@ Material:
     - _LerpSpeed: 5
     - _Metallic: 0
     - _Mode: 0
+    - _NoiseScale: 16
     - _NoiseStrength: 0.2
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _Progress: 0
+    - _Pulse: 0
     - _Seed: 1
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1

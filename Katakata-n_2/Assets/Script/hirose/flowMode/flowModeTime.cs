@@ -18,7 +18,7 @@ public sealed class flowModeTime
     {
         if (timeLeft > 0f)
         {
-            timeLeft -= deltaTime; 
+            timeLeft -= deltaTime;
         }
     }
 

@@ -3,13 +3,13 @@ using UnityEngine;
 
 public class PauseManager : MonoBehaviour
 {
-    // ===== 全体ポーズ状態（ゲーム側が参照する）=====
+    // ==============================
+    // 全体ポーズ
+    // ==============================
     public static bool IsPaused { get; private set; }
-
-    // （任意）全体ポーズ変更通知が欲しい場合
     public static event Action<bool> OnPauseChanged;
 
-    [Header("参照（制限時間だけ止める用）")]
+    [Header("制限時間参照")]
     [SerializeField] private GameTimer gameTimer;
 
     [Header("初期状態")]
@@ -17,11 +17,12 @@ public class PauseManager : MonoBehaviour
 
     void Awake()
     {
+        Time.timeScale = 1f; // 旧実装対策
         SetPaused(startPaused);
     }
 
     // ==============================
-    // 全体ポーズ
+    // 全体ポーズ制御
     // ==============================
     public void SetPaused(bool paused)
     {
@@ -37,7 +38,7 @@ public class PauseManager : MonoBehaviour
     }
 
     // ==============================
-    // 制限時間だけ停止/再開
+    // 制限時間だけ停止
     // ==============================
     public void PauseGameTimer()
     {
@@ -57,9 +58,9 @@ public class PauseManager : MonoBehaviour
         gameTimer.ToggleLocalPaused();
     }
 
-    // （任意）コード側から参照を差し替えたい時
-    public void SetGameTimer(GameTimer timer)
+    public bool IsGameTimerPaused()
     {
-        gameTimer = timer;
+        if (gameTimer == null) return false;
+        return gameTimer.LocalPaused;
     }
 }

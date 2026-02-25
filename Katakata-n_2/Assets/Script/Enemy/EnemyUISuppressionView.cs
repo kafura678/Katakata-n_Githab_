@@ -1,197 +1,73 @@
 using System.Collections;
 using UnityEngine;
-using UnityEngine.UI;
 
-[RequireComponent(typeof(Image))]
 public class EnemyUISuppressionView : MonoBehaviour
 {
     [Header("参照")]
-    [SerializeField] EnemySystem enemy;
+    [SerializeField] private EnemyManager enemyManager;
 
-    [Header("中心設定")]
-    [SerializeField] bool useRandomCenter = false;
-    [SerializeField] Vector2 manualCenter = new(0.5f, 0.5f);
-    [SerializeField, Range(0f, 0.5f)] float centerRandomRange = 0.3f;
+    [Header("送信演出（侵食の“境界”を一瞬荒らす）")]
+    [Tooltip("送信1回でPulseをどこまで上げるか（0〜1）")]
+    [SerializeField, Range(0f, 1f)] private float pulsePeak = 1f;
 
-    [Header("ブロック設定（Shaderと合わせる）")]
-    [SerializeField, Range(4, 256)] int blocksPerAxis = 64;
-    [SerializeField] bool snapCenterToBlock = true;
+    [Tooltip("Pulseを0に戻すまでの時間（秒）")]
+    [SerializeField] private float pulseDuration = 0.25f;
 
-    [Header("送信1回あたりの演出")]
-    [Tooltip("1回の送信で変化が終わる時間（秒）")]
-    [SerializeField, Range(0.05f, 2f)] float perSendDuration = 0.45f;
+    [Tooltip("全体ポーズ中はPulse更新を止める（任意）")]
+    [SerializeField] private bool obeyGlobalPause = false;
 
-    [Header("イーズ（加速→減速）")]
-    [Tooltip("0=線形, 1=強いイーズ")]
-    [SerializeField, Range(0f, 1f)] float easeStrength = 1f;
-
-    [Tooltip("より自然なイーズ（おすすめ）")]
-    [SerializeField] bool useSmoothStepEase = true;
-
-    [Header("ブロック感")]
-    [SerializeField] bool quantizeProgressToBlocks = true;
-    [SerializeField, Range(1, 512)] int progressSteps = 128;
-
-    [Header("成功時に侵入口を変える")]
-    [SerializeField] bool changeCenterOnSuccess = false;
-
-    Image image;
-    Material runtimeMat;
-
-    float shownProgress01;
-    Coroutine animCo;
-
-    static readonly int PropProgress = Shader.PropertyToID("_Progress");
-    static readonly int PropCenter = Shader.PropertyToID("_Center");
-    static readonly int PropBlocks = Shader.PropertyToID("_Blocks");
-
-    void Awake()
-    {
-        image = GetComponent<Image>();
-
-        runtimeMat = Instantiate(image.material);
-        image.material = runtimeMat;
-
-        runtimeMat.SetFloat(PropBlocks, blocksPerAxis);
-
-        ApplyCenter();
-
-        shownProgress01 = GetEnemyProgress01();
-        ApplyProgress(shownProgress01);
-    }
+    private Coroutine pulseCo;
 
     /// <summary>
-    /// 送信成功など「1回のイベント」で、現在表示→最新制圧率までをじわじわ反映
+    /// GameManagerの「送信成功時」に呼ぶ
     /// </summary>
     public void AnimateOneSend()
     {
-        if (enemy == null || runtimeMat == null) return;
+        if (enemyManager == null) return;
 
-        if (changeCenterOnSuccess)
-        {
-            if (useRandomCenter) manualCenter = GetRandomCenter();
-            ApplyCenter();
-        }
+        var target = enemyManager.CurrentTarget;
+        if (target == null) return;
 
-        float target = GetEnemyProgress01();
-
-        if (animCo != null) StopCoroutine(animCo);
-        animCo = StartCoroutine(AnimateProgress(shownProgress01, target, perSendDuration));
+        if (pulseCo != null) StopCoroutine(pulseCo);
+        pulseCo = StartCoroutine(PulseRoutine(target));
     }
 
-    IEnumerator AnimateProgress(float from, float to, float duration)
+    /// <summary>
+    /// 外部から明示的にターゲットを指定して鳴らしたい場合
+    /// </summary>
+    public void AnimateOneSend(EnemyUnit target)
     {
-        from = Mathf.Clamp01(from);
-        to = Mathf.Clamp01(to);
+        if (target == null) return;
 
-        if (Mathf.Approximately(from, to) || duration <= 0f)
-        {
-            shownProgress01 = to;
-            ApplyProgress(shownProgress01);
-            animCo = null;
-            yield break;
-        }
+        if (pulseCo != null) StopCoroutine(pulseCo);
+        pulseCo = StartCoroutine(PulseRoutine(target));
+    }
 
+    private IEnumerator PulseRoutine(EnemyUnit target)
+    {
+        // 開始時にピークまで上げる
+        target.Pulse(pulsePeak);
+
+        float dur = Mathf.Max(0.001f, pulseDuration);
         float t = 0f;
 
-        while (t < duration)
+        while (t < dur)
         {
-            t += Time.deltaTime;
-            float a = Mathf.Clamp01(t / duration);
+            if (obeyGlobalPause && PauseManager.IsPaused)
+            {
+                yield return null;
+                continue;
+            }
 
-            // ★ イーズ適用
-            float eased = Ease(a);
+            // 1 -> 0 へ減衰
+            float k = 1f - (t / dur);
+            target.Pulse(pulsePeak * k);
 
-            // 補間
-            shownProgress01 = Mathf.Lerp(from, to, eased);
-            ApplyProgress(shownProgress01);
-
+            t += Time.unscaledDeltaTime;
             yield return null;
         }
 
-        // ★最後は必ずピタッと目標に合わせる
-        shownProgress01 = to;
-        ApplyProgress(shownProgress01);
-        animCo = null;
+        target.ClearPulse();
+        pulseCo = null;
     }
-
-    float Ease(float a01)
-    {
-        a01 = Mathf.Clamp01(a01);
-
-        // ベースのイーズ
-        float baseEase;
-        if (useSmoothStepEase)
-        {
-            // SmoothStep: 加速→減速（自然）
-            baseEase = a01 * a01 * (3f - 2f * a01);
-        }
-        else
-        {
-            // SmootherStep: さらに滑らか（ややぬるい）
-            baseEase = a01 * a01 * a01 * (a01 * (6f * a01 - 15f) + 10f);
-        }
-
-        // 0=線形, 1=イーズ にブレンド
-        return Mathf.Lerp(a01, baseEase, easeStrength);
-    }
-
-    void ApplyProgress(float p01)
-    {
-        if (runtimeMat == null) return;
-
-        float p = Mathf.Clamp01(p01);
-
-        if (quantizeProgressToBlocks)
-        {
-            int steps = Mathf.Max(1, progressSteps);
-            p = Mathf.Floor(p * steps) / steps;
-        }
-
-        runtimeMat.SetFloat(PropProgress, p);
-    }
-
-    float GetEnemyProgress01()
-    {
-        if (enemy == null) return 0f;
-        return Mathf.Clamp01(enemy.SuppressionPercent / 100f);
-    }
-
-    void ApplyCenter()
-    {
-        if (runtimeMat == null) return;
-
-        Vector2 c = useRandomCenter ? GetRandomCenter() : manualCenter;
-
-        if (snapCenterToBlock)
-            c = SnapToBlockCenter(c, Mathf.Max(1, blocksPerAxis));
-
-        runtimeMat.SetVector(PropCenter, c);
-    }
-
-    Vector2 GetRandomCenter()
-    {
-        float cx = 0.5f + Random.Range(-centerRandomRange, centerRandomRange);
-        float cy = 0.5f + Random.Range(-centerRandomRange, centerRandomRange);
-        return new Vector2(Mathf.Clamp01(cx), Mathf.Clamp01(cy));
-    }
-
-    static Vector2 SnapToBlockCenter(Vector2 uv, int blocks)
-    {
-        float x = (Mathf.Floor(uv.x * blocks) + 0.5f) / blocks;
-        float y = (Mathf.Floor(uv.y * blocks) + 0.5f) / blocks;
-        return new Vector2(Mathf.Clamp01(x), Mathf.Clamp01(y));
-    }
-
-#if UNITY_EDITOR
-    void OnValidate()
-    {
-        if (!Application.isPlaying) return;
-        if (runtimeMat == null) return;
-
-        runtimeMat.SetFloat(PropBlocks, blocksPerAxis);
-        ApplyCenter();
-        ApplyProgress(shownProgress01);
-    }
-#endif
 }

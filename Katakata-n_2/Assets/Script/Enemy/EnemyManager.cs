@@ -5,15 +5,14 @@ public class EnemyManager : MonoBehaviour
 {
     [Header("敵構成")]
     [SerializeField] private EnemyUnit core;
-    [SerializeField] private List<EnemyUnit> minions;
+    [SerializeField] private List<EnemyUnit> minions = new List<EnemyUnit>();
 
     private EnemyUnit currentTarget;
-
     public EnemyUnit CurrentTarget => currentTarget;
 
     void Start()
     {
-        SelectFirstAliveMinion();
+        SelectFirstAliveMinionOrCore();
     }
 
     public void SelectTarget(EnemyUnit unit)
@@ -25,36 +24,64 @@ public class EnemyManager : MonoBehaviour
             return;
 
         currentTarget = unit;
-
-        Debug.Log("選択ターゲット：" + unit.name);
     }
 
-    public void ApplyDamageToCurrent(float damage)
+    public void ApplyDamageToCurrent(float damage, bool pulse = true)
     {
         if (currentTarget == null) return;
 
         currentTarget.ApplyDamage(damage);
+
+        // 送信1回の演出（必要なら）
+        if (pulse) currentTarget.Pulse(1f);
+
+        AutoRetargetIfNeeded();
+    }
+
+    private void AutoRetargetIfNeeded()
+    {
+        // 全取り巻き制圧 → コアへ
+        if (AllMinionsSuppressed())
+        {
+            if (core != null) currentTarget = core;
+            return;
+        }
+
+        // 取り巻き制圧済みなら次の未制圧へ
+        if (currentTarget != null && currentTarget != core && currentTarget.IsSuppressed)
+        {
+            var next = FindFirstUnsuppressedMinion();
+            if (next != null) currentTarget = next;
+        }
+
+        if (currentTarget == null)
+            SelectFirstAliveMinionOrCore();
     }
 
     private bool AllMinionsSuppressed()
     {
-        foreach (var m in minions)
+        for (int i = 0; i < minions.Count; i++)
         {
-            if (!m.IsSuppressed)
-                return false;
+            var m = minions[i];
+            if (m != null && !m.IsSuppressed) return false;
         }
         return true;
     }
 
-    private void SelectFirstAliveMinion()
+    private EnemyUnit FindFirstUnsuppressedMinion()
     {
-        foreach (var m in minions)
+        for (int i = 0; i < minions.Count; i++)
         {
-            if (!m.IsSuppressed)
-            {
-                currentTarget = m;
-                return;
-            }
+            var m = minions[i];
+            if (m != null && !m.IsSuppressed) return m;
         }
+        return null;
+    }
+
+    private void SelectFirstAliveMinionOrCore()
+    {
+        var first = FindFirstUnsuppressedMinion();
+        if (first != null) currentTarget = first;
+        else if (core != null) currentTarget = core;
     }
 }
