@@ -92,7 +92,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ErrorWindowUI
   timeText: {fileID: 2557930958445660055}
-  prefix: "\u6B8B\u308A\u6642\u9593\uFF1A"
+  prefix: 
 --- !u!114 &1538296134746964940
 MonoBehaviour:
   m_ObjectHideFlags: 0

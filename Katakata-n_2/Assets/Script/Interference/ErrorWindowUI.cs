@@ -9,7 +9,6 @@ public class ErrorWindowUI : MonoBehaviour
 
     private GameTimer timer;
 
-    // Interference側から注入する
     public void SetGameTimer(GameTimer gameTimer)
     {
         timer = gameTimer;
@@ -18,7 +17,6 @@ public class ErrorWindowUI : MonoBehaviour
 
     void Update()
     {
-        // 常に更新（妨害中でも見せたい）
         RefreshTimeText();
     }
 
@@ -28,19 +26,11 @@ public class ErrorWindowUI : MonoBehaviour
         timeText.text = prefix + FormatTime(timer.TimeLeft);
     }
 
+    // ★ 常に小数第1位（例：12.3）
     private string FormatTime(float seconds)
     {
         seconds = Mathf.Max(0f, seconds);
-
-        if (seconds >= 60f)
-        {
-            int m = Mathf.FloorToInt(seconds / 60f);
-            int s = Mathf.FloorToInt(seconds % 60f);
-            return $"{m}:{s:00}";
-        }
-
-        // 1分未満は 59.9 表示
-        return $"{seconds:F1}";
+        return seconds.ToString("F1");
     }
 
     public void Close()
