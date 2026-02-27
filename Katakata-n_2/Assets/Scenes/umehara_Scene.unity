@@ -2444,7 +2444,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c1620405e0c34a41b9f992d576c439d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FlowSystem
-  current: 95
+  current: 0
 --- !u!1 &1828253679
 GameObject:
   m_ObjectHideFlags: 0
