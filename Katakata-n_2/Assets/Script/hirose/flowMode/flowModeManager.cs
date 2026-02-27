@@ -14,10 +14,15 @@ public class flowModeManager : MonoBehaviour
     [SerializeField] private InputBuffer inputBuffer;
     [SerializeField] private GameObject[] flowModeDeactivationObjects;
 
+    [Header("敵")]
+    [SerializeField] private EnemyManager enemyManager;
+
+    [Header("ダメージ")]
+    [SerializeField] private float damageAmount = 2.5F;
+
     [Header("UI")]
     [SerializeField] private Text originalChallengeText;
     private List<Text> challengeTexts = new List<Text>();
-    [SerializeField] private Text textTyped;
 
     [Header("お題テキストの配置範囲")]
     [SerializeField] Vector2 maxChallengeTextOffset = new Vector2(500f, 450f);
@@ -61,6 +66,10 @@ public class flowModeManager : MonoBehaviour
         {
             if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
             {
+                // 敵へダメージ（現在ターゲットへ）
+                if (enemyManager != null)
+                    enemyManager.ApplyDamageToCurrent(damageAmount);
+
                 Destroy(challengeTexts[0].gameObject);
                 challengeTexts.RemoveAt(0);
                 if (challengeTexts.Count == 0)
@@ -120,7 +129,7 @@ public class flowModeManager : MonoBehaviour
 
         //ゲーム制限時間を再開
         pauseManager.ResumeGameTimer();
-        
+
         //オブジェクト表示
         foreach (GameObject obj in flowModeDeactivationObjects)
         {
