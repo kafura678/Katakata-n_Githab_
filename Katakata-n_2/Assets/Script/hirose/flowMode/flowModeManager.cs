@@ -12,6 +12,7 @@ public class flowModeManager : MonoBehaviour
     [SerializeField] private PauseManager pauseManager;
     [SerializeField] private FlowSystem flowSystem;
     [SerializeField] private InputBuffer inputBuffer;
+    [SerializeField] private GameObject[] flowModeDeactivationObjects;
 
     [Header("UI")]
     [SerializeField] private Text originalChallengeText;
@@ -103,14 +104,28 @@ public class flowModeManager : MonoBehaviour
         //ゲーム制限時間を停止
         pauseManager.PauseGameTimer();
 
+        //オブジェクト非表示
+        foreach (GameObject obj in flowModeDeactivationObjects)
+        {
+            obj.SetActive(false);
+        }
+
         //お題生成
         challenge = ChallengeGenerator.Create();
     }
 
     private void OnFlowModeDeactivated()
     {
+        flowSystem.ResetFlow();
+
         //ゲーム制限時間を再開
         pauseManager.ResumeGameTimer();
+        
+        //オブジェクト表示
+        foreach (GameObject obj in flowModeDeactivationObjects)
+        {
+            obj.SetActive(true);
+        }
 
     }
 
