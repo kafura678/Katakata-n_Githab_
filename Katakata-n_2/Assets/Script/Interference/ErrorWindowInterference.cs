@@ -11,6 +11,8 @@ public class ErrorWindowInterference : MonoBehaviour, IInterference
     // 妨害中は他操作を止める
     public bool BlocksInput => true;
 
+    [SerializeField] private GameTimer gameTimer;
+
     [Header("生成")]
     [SerializeField] private RectTransform spawnParent; // Canvas配下（Panelなど）
     [SerializeField] private ErrorWindowUI windowPrefab;
@@ -123,6 +125,8 @@ public class ErrorWindowInterference : MonoBehaviour, IInterference
             }
 
             var w = Instantiate(windowPrefab, spawnParent);
+
+            w.SetGameTimer(gameTimer);
 
             var rt = w.GetComponent<RectTransform>();
             RandomPlace(rt);

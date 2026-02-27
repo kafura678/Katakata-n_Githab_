@@ -1853,10 +1853,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   inputBuffer: {fileID: 1469850069}
+  interferenceManager: {fileID: 1379683916}
   gameTimer: {fileID: 356342149}
+  enemyManager: {fileID: 352567196}
   enemyView: {fileID: 984108529}
-  flowModeManager: {fileID: 811482985}
-  enemy: {fileID: 0}
   textEnemySuppression: {fileID: 1548815609}
   flow: {fileID: 1811118615}
   textFlowPercent: {fileID: 170395491}
@@ -1867,13 +1867,15 @@ MonoBehaviour:
   textCount: {fileID: 562303787}
   textTyped: {fileID: 1828253681}
   textStatus: {fileID: 213016649}
-  challengeListParent: {fileID: 737247310}
-  challengeButtonPrefab: {fileID: 6662481253911293588, guid: df8642a0ba14649a3ae302d73c9efb72, type: 3}
-  challengeSlots: 6
-  sendResultHoldSeconds: 1
+  textTime: {fileID: 0}
   statusNormalColor: {r: 1, g: 1, b: 1, a: 1}
   statusSuccessColor: {r: 0, g: 1, b: 0, a: 1}
   statusFailColor: {r: 1, g: 0, b: 0, a: 1}
+  sendResultHoldSeconds: 1
+  challengeListParent: {fileID: 737247310}
+  challengeButtonPrefab: {fileID: 6662481253911293588, guid: df8642a0ba14649a3ae302d73c9efb72, type: 3}
+  challengeSlots: 6
+  challengeRevealSeconds: 0.5
   damagePerSuccess: 20
   flowGainOnSuccess: 10
   flowLossOnFail: 5
@@ -1886,8 +1888,6 @@ MonoBehaviour:
   flowBonusPerAdditional: 0.25
   maxDamageSimulMultiplier: 5
   maxFlowSimulMultiplier: 5
-  challengeRevealSeconds: 0.5
-  timeUpMessage: "\u6642\u9593\u5207\u308C"
 --- !u!1 &1548815607
 GameObject:
   m_ObjectHideFlags: 0

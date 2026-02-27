@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
@@ -11,17 +12,22 @@ public class GameManager : MonoBehaviour
     // ==============================
     [Header("参照")]
     [SerializeField] private InputBuffer inputBuffer;
-    [SerializeField] private GameTimer gameTimer;                 // ★制限時間（分離）
-    [SerializeField] private EnemyUISuppressionView enemyView;
-    [SerializeField] private flowModeManager flowModeManager; // ★フローモード管理（分離）
+
+    [Header("妨害（Interference）")]
+    [Tooltip("妨害中は他操作を無効化する")]
+    [SerializeField] private InterferenceManager interferenceManager;
+
+    [Header("制限時間（GameTimer）")]
+    [SerializeField] private GameTimer gameTimer;
 
     [Header("敵")]
-    [SerializeField] private EnemySystem enemy;
-    [SerializeField] private Text textEnemySuppression;           // 制圧率：12.3%
+    [SerializeField] private EnemyManager enemyManager;
+    [SerializeField] private EnemyUISuppressionView enemyView; // 送信時のPulse等（任意）
+    [SerializeField] private Text textEnemySuppression; // 制圧率：12.3%
 
     [Header("フロー")]
     [SerializeField] private FlowSystem flow;
-    [SerializeField] private Text textFlowPercent;                // FLOW：12.3%
+    [SerializeField] private Text textFlowPercent; // FLOW：12.3%
 
     [Header("SE")]
     [SerializeField] private AudioSource seSource;
@@ -33,30 +39,36 @@ public class GameManager : MonoBehaviour
     // UI
     // ==============================
     [Header("UI")]
-    [SerializeField] private Text textCount;                      // 入力数
-    [SerializeField] private Text textTyped;                      // 入力履歴（RichText推奨）
-    [SerializeField] private Text textStatus;                     // 状態表示
+    [SerializeField] private Text textCount;   // 入力数
+    [SerializeField] private Text textTyped;   // 入力履歴（RichText ON推奨）
+    [SerializeField] private Text textStatus;  // 状態表示
+    [SerializeField] private Text textTime;    // 残り時間（GameTimerが別表示なら未使用でもOK）
 
-    [Header("お題ボタン")]
-    [SerializeField] private Transform challengeListParent;
-    [SerializeField] private ChallengeButtonItem challengeButtonPrefab;
-
-    // ==============================
-    // 調整（日本語）
-    // ==============================
-    [Header("調整：お題")]
-    [Tooltip("同時に表示するお題の数（3×2なら6）")]
-    [SerializeField] private int challengeSlots = 6;
-
-    [Header("調整：状態表示")]
-    [Tooltip("送信成功／失敗などの表示時間（秒）")]
-    [SerializeField] private float sendResultHoldSeconds = 1.0f;
-
-    [Header("調整：状態表示の色")]
+    [Header("状態表示の色")]
     [SerializeField] private Color statusNormalColor = Color.white;
     [SerializeField] private Color statusSuccessColor = Color.green;
     [SerializeField] private Color statusFailColor = Color.red;
 
+    [Header("状態表示の固定時間（秒）")]
+    [SerializeField] private float sendResultHoldSeconds = 1.0f;
+
+    // ==============================
+    // お題ボタン
+    // ==============================
+    [Header("お題ボタン")]
+    [SerializeField] private Transform challengeListParent;
+    [SerializeField] private ChallengeButtonItem challengeButtonPrefab;
+
+    [Header("調整：お題スロット数（3×2なら6）")]
+    [SerializeField] private int challengeSlots = 6;
+
+    [Header("演出：お題ボタン生成")]
+    [Tooltip("お題ボタンの出現演出時間（BeginRevealに渡す秒数）")]
+    [SerializeField] private float challengeRevealSeconds = 0.35f;
+
+    // ==============================
+    // 調整：敵ダメージ / フロー増減
+    // ==============================
     [Header("調整：敵ダメージ / フロー増減")]
     [Tooltip("送信成功1回で敵に与えるダメージ（同時打ち倍率の前）")]
     [SerializeField] private float damagePerSuccess = 10f;
@@ -67,7 +79,10 @@ public class GameManager : MonoBehaviour
     [Tooltip("送信失敗時のフロー減少量")]
     [SerializeField] private float flowLossOnFail = 5f;
 
-    [Header("調整：入力時間によるフロー倍率")]
+    // ==============================
+    // 調整：入力時間による倍率
+    // ==============================
+    [Header("調整：入力時間による倍率")]
     [Tooltip("ONの場合、お題を選択した瞬間から入力時間を計測")]
     [SerializeField] private bool startTimerOnSelect = true;
 
@@ -83,7 +98,10 @@ public class GameManager : MonoBehaviour
     [Tooltip("入力が速いときの倍率上限")]
     [SerializeField] private float maxTimeMultiplier = 2.0f;
 
-    [Header("調整：同時打ち（複数お題成功）ボーナス")]
+    // ==============================
+    // 調整：同時打ちボーナス
+    // ==============================
+    [Header("調整：同時打ちボーナス")]
     [Tooltip("追加1個ごとにダメージ倍率が増える量（例:0.25=+25%）")]
     [SerializeField] private float damageBonusPerAdditional = 0.25f;
 
@@ -96,13 +114,6 @@ public class GameManager : MonoBehaviour
     [Tooltip("FLOW倍率の上限（暴走防止）")]
     [SerializeField] private float maxFlowSimulMultiplier = 5.0f;
 
-    [Header("演出：お題ボタン生成")]
-    [Tooltip("お題ボタン出現演出の時間（秒）")]
-    [SerializeField] private float challengeRevealSeconds = 0.35f;
-
-    [Header("時間切れ表示")]
-    [SerializeField] private string timeUpMessage = "時間切れ";
-
     // ==============================
     // 内部状態
     // ==============================
@@ -112,183 +123,165 @@ public class GameManager : MonoBehaviour
     // 複数選択（Shift同時打ち）
     private readonly HashSet<int> selectedSet = new HashSet<int>();
 
-    // 状態固定表示（成功/失敗/選択不可/時間切れ など）
+    // 状態固定表示（成功/失敗など）
     private string forcedStatusText = null;
     private Color forcedStatusColor = Color.white;
     private float forcedStatusUntil = 0f;
 
-    //フローモード中に成功したお題の数
-    private int flowModeSuccessCount = 0;
-
     // 入力時間計測
     private float challengeStartTime = 0f;
     private bool hasStartedTiming = false;
+
+    // タイムアップ
+    private bool isTimeUp = false;
+
+    // ==============================
+    // 状態（テキスト生成を1か所へ）
+    // ==============================
+    private enum Status
+    {
+        Selecting,
+        Waiting,
+        Inputting,
+        Success,
+        Fail,
+        Interference,
+        TimeUp,
+        SimulNotAllowed
+    }
 
     // ==============================
     // Unity
     // ==============================
     void Start()
     {
+        isTimeUp = false;
+
         GenerateChallenges();
         BuildChallengeListUI();
-        ClearSelection();
+        ClearSelectionVisualOnly();
         RefreshUI();
-
-        //フローモード遷移のイベント登録
-        if (flowModeManager != null)
-        {
-            flowModeManager.setOnFlowModeTransitioned(GenerateChallenges);
-            flowModeManager.setOnFlowModeTransitioned(BuildChallengeListUI);
-            flowModeManager.setOnFlowModeTransitioned(ClearSelection);
-            flowModeManager.setOnFlowModeTransitioned(RefreshUI);
-        }
     }
 
     void Update()
     {
-        // ===== タイムアップ後は停止（制限時間は GameTimer 側）=====
-        if (gameTimer != null && gameTimer.IsTimeUp)
+        // ---- タイムアップ後は停止（UI更新だけ） ----
+        if (isTimeUp)
         {
             inputBuffer.AcceptInput = false;
-            inputBuffer.ClearAll();
-            ClearSelection();
             RefreshUI();
             return;
         }
 
-        // ===== フローモード送信 =====
-        if (flowModeStatus.state == flowModeState.isFlowSendModeActive)
+        // ---- 妨害中（ウィンドウがある等）なら、他操作は全部無効化 ----
+        // 妨害側がEnterを使うので、GameManager側はEnterを絶対に処理しない
+        if (interferenceManager != null && interferenceManager.IsBlockingInput)
         {
-            if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
-            {
-                successExection();
-                flowModeSuccessCount--;
-                if (flowModeSuccessCount <= 0)
-                {
-                    flowModeManager.OnFlowModeDeactivate();
-                }
-            }
-
+            inputBuffer.AcceptInput = false;
+            ForceStatusAuto(Status.Interference, statusFailColor);
             RefreshUI();
             return;
         }
 
-        // ===== 入力更新 =====
+        // ---- ポーズ（全体停止）中の挙動は任意：ここでは入力を止めるだけ ----
+        if (PauseManager.IsPaused)
+        {
+            inputBuffer.AcceptInput = false;
+            RefreshUI();
+            return;
+        }
+
+        // ---- 入力更新 ----
+        inputBuffer.AcceptInput = (selectedSet.Count > 0);
         inputBuffer.Tick();
 
-        // ===== フローモード中は常に成功扱い（ただし送信しない） =====
-        if (flowModeStatus.state == flowModeState.isFlowModeActive)
+        // ---- Enter送信（選択が無ければ送らない） ----
+        if (selectedSet.Count > 0 &&
+            (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)))
         {
-            if (IsSendableForAllSelected())
-            {
-                challengeRefresh();
-                flowModeSuccessCount++;
-
-                RefreshUI();
-                return;
-            }
-        }
-
-        // 選択が無ければ送信しない
-        if (selectedSet.Count == 0)
-        {
-            RefreshUI();
-            return;
-        }
-
-        // ===== Enter送信 =====
-        if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
-        {
-            bool ok = IsSendableForAllSelected();
-
-            if (ok)
-            {
-                OnSendSuccess();
-            }
-            else
-            {
-                OnSendFail();
-            }
+            TrySend();
         }
 
         RefreshUI();
     }
 
     // ==============================
-    // GameTimer から呼ぶ（UnityEvent推奨）
+    // GameTimer から呼ぶ（UnityEventで登録）
     // ==============================
-    public void HandleTimeUp()
+    public void OnTimeUp()
     {
+        if (isTimeUp) return;
+
+        isTimeUp = true;
+
         inputBuffer.AcceptInput = false;
         inputBuffer.ClearAll();
 
         ClearSelection();
-        ForceStatus(timeUpMessage, statusFailColor);
+        ForceStatusAuto(Status.TimeUp, statusFailColor);
 
         if (EventSystem.current != null)
             EventSystem.current.SetSelectedGameObject(null);
-
-        RefreshUI();
     }
 
     // ==============================
     // 送信処理
     // ==============================
-    private void OnSendSuccess()
+    private void TrySend()
     {
-        successExection();
-        challengeRefresh();
-    }
+        bool ok = IsSendableForAllSelected();
 
-    private void successExection()
-    {
-        ForceStatus("送信成功", statusSuccessColor);
-        PlaySE(seSuccess);
-
-        int k = selectedSet.Count;
-
-        float dmgMult = CalcSimulMultiplier(k, damageBonusPerAdditional, maxDamageSimulMultiplier);
-        float flowMult = CalcSimulMultiplier(k, flowBonusPerAdditional, maxFlowSimulMultiplier);
-
-        if (enemy != null)
-            enemy.ApplyDamage(damagePerSuccess * dmgMult);
-
-        enemyView?.AnimateOneSend();
-
-        if (flow != null)
+        if (ok)
         {
-            float elapsed = hasStartedTiming ? (Time.time - challengeStartTime) : 0f;
-            float timeMult = CalcTimeMultiplier(elapsed);
-            flow.Add(flowGainOnSuccess * timeMult * flowMult);
+            ForceStatusAuto(Status.Success, statusSuccessColor);
+            PlaySE(seSuccess);
+
+            int k = selectedSet.Count;
+
+            float dmgMult = CalcSimulMultiplier(k, damageBonusPerAdditional, maxDamageSimulMultiplier);
+            float flowMult = CalcSimulMultiplier(k, flowBonusPerAdditional, maxFlowSimulMultiplier);
+
+            // 敵へダメージ（現在ターゲットへ）
+            if (enemyManager != null)
+                enemyManager.ApplyDamageToCurrent(damagePerSuccess * dmgMult);
+
+            // 送信演出（任意）
+            enemyView?.AnimateOneSend();
+
+            // フロー増加（時間倍率×同時打ち倍率）
+            if (flow != null)
+            {
+                float elapsed = hasStartedTiming ? (Time.unscaledTime - challengeStartTime) : 0f;
+                float timeMult = CalcTimeMultiplier(elapsed);
+                flow.Add(flowGainOnSuccess * timeMult * flowMult);
+            }
+
+            // 成功したお題を置換（出現演出で選択不可→可）
+            ReplaceSelectedChallengesWithReveal();
+
+            // 入力・計測リセット
+            inputBuffer.ClearAll();
+            hasStartedTiming = false;
+
+            // 成功後は選び直し
+            ClearSelection();
+
+            // EnterのUI事故防止
+            if (EventSystem.current != null)
+                EventSystem.current.SetSelectedGameObject(null);
         }
-    }
+        else
+        {
+            ForceStatusAuto(Status.Fail, statusFailColor);
+            PlaySE(seFail);
 
-    private void challengeRefresh()
-    {
-        // 成功したお題を置換（出現演出で選択不可→可）
-        ReplaceSelectedChallengesWithReveal();
+            if (flow != null)
+                flow.Sub(flowLossOnFail);
 
-        // 入力・計測リセット
-        inputBuffer.ClearAll();
-        hasStartedTiming = false;
+            inputBuffer.ClearAll();
 
-        // 成功後は選び直し
-        ClearSelection();
-
-        // EnterのUI事故防止
-        if (EventSystem.current != null)
-            EventSystem.current.SetSelectedGameObject(null);
-    }
-
-    private void OnSendFail()
-    {
-        ForceStatus("送信失敗", statusFailColor);
-        PlaySE(seFail);
-
-        if (flow != null)
-            flow.Sub(flowLossOnFail);
-
-        inputBuffer.ClearAll();
+            // 失敗時は「選択は維持」したいなら ClearSelection() はしない
+        }
     }
 
     // ==============================
@@ -298,16 +291,7 @@ public class GameManager : MonoBehaviour
     {
         challenges.Clear();
         for (int i = 0; i < challengeSlots; i++)
-        {
             challenges.Add(ChallengeGenerator.Create());
-
-            if (flowModeStatus.state == flowModeState.isFlowModeActive)
-            {
-                // フローモード中は必要キーなしにする
-                var c = challenges[i];
-                c.requiredKeys.Clear();
-            }
-        }
     }
 
     private void BuildChallengeListUI()
@@ -323,17 +307,20 @@ public class GameManager : MonoBehaviour
             item.Setup(i, challenges[i], OnClickChallenge);
             item.SetSelected(false);
             item.SetExcluded(false);
+            item.ResetProgress();
+
             challengeButtons.Add(item);
 
-            // ★開始時も出現演出をする場合（不要なら削除）
+            // ★開始時にも出現演出を動かしたい場合
             item.BeginReveal(challengeRevealSeconds);
         }
     }
 
     private void OnClickChallenge(int index)
     {
-        // 時間切れなら無視
-        if (gameTimer != null && gameTimer.IsTimeUp) return;
+        if (isTimeUp) return;
+        if (PauseManager.IsPaused) return;
+        if (interferenceManager != null && interferenceManager.IsBlockingInput) return;
 
         bool shift = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
 
@@ -355,32 +342,31 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        // Shift：同時選択トグル
+        // Shift：同時選択トグル（追加時に可否チェック）
         if (selectedSet.Contains(index))
         {
             selectedSet.Remove(index);
         }
         else
         {
+            // 出現中などで選択不可
             if (index < 0 || index >= challengeButtons.Count) return;
 
             var btn = challengeButtons[index];
-
-            // ① 出現中などで選択不可
             if (btn == null || !btn.IsSimulSelectable)
             {
-                ForceStatus("選択不可", statusFailColor);
+                ForceStatusAuto(Status.SimulNotAllowed, statusFailColor);
                 PlaySE(seFail);
                 return;
             }
 
-            // ② レンジ不一致（キー数が同時に満たせない）
+            // レンジ不一致（キー数が同時に満たせない）
             if (selectedSet.Count > 0)
             {
                 GetSelectedRangeIntersection(out int selMin, out int selMax);
                 if (!IsSimulSelectableByRange(index, selMin, selMax))
                 {
-                    ForceStatus("選択不可", statusFailColor);
+                    ForceStatusAuto(Status.SimulNotAllowed, statusFailColor);
                     PlaySE(seFail);
                     return;
                 }
@@ -414,7 +400,8 @@ public class GameManager : MonoBehaviour
     private void StartTimingIfNeeded()
     {
         if (!startTimerOnSelect) return;
-        challengeStartTime = Time.time;
+
+        challengeStartTime = Time.unscaledTime;
         hasStartedTiming = true;
     }
 
@@ -423,18 +410,17 @@ public class GameManager : MonoBehaviour
         selectedSet.Clear();
         inputBuffer.AcceptInput = false;
 
-        // 見た目解除
+        ClearSelectionVisualOnly();
+    }
+
+    private void ClearSelectionVisualOnly()
+    {
         for (int i = 0; i < challengeButtons.Count; i++)
         {
+            if (challengeButtons[i] == null) continue;
             challengeButtons[i].SetSelected(false);
             challengeButtons[i].SetExcluded(false);
-        }
-
-        if (flowModeStatus.state == flowModeState.isFlowModeActive)
-        {
-            //フローモード中はランダムに選択
-            int idx = Random.Range(0, challenges.Count);
-            selectedSet.Add(idx);
+            challengeButtons[i].ResetProgress();
         }
     }
 
@@ -449,31 +435,44 @@ public class GameManager : MonoBehaviour
     // ==============================
     private void RefreshUI()
     {
-        bool timeUp = (gameTimer != null && gameTimer.IsTimeUp);
+        // 入力受付（妨害/ポーズ/タイムアップはUpdate側で止める）
+        inputBuffer.AcceptInput = (!isTimeUp &&
+                                  (interferenceManager == null || !interferenceManager.IsBlockingInput) &&
+                                  !PauseManager.IsPaused &&
+                                  selectedSet.Count > 0);
 
-        inputBuffer.AcceptInput = (!timeUp && selectedSet.Count > 0);
+        // 残り時間表示（GameTimerがTextを持っているなら未使用でもOK）
+        if (textTime != null && gameTimer != null)
+            textTime.text = "残り時間：" + FormatTime(gameTimer.TimeLeft);
 
-        if (enemy != null && textEnemySuppression != null)
-            textEnemySuppression.text = $"制圧率：{enemy.SuppressionPercent:F1}%";
+        // 敵・フロー表示
+        if (enemyManager != null && textEnemySuppression != null)
+        {
+            // EnemyManager側に「現在ターゲットの制圧率」表示を持たせるならそちらに寄せてもOK
+            // ここでは EnemyUISuppressionView 等が別で表示しているケースが多いので未使用でも可
+        }
 
         if (flow != null && textFlowPercent != null)
             textFlowPercent.text = $"FLOW：{flow.Percent:F1}%";
 
+        // 入力数
+        if (textCount != null)
+            textCount.text = $"入力数: {inputBuffer.LetterCount}";
+
         // 状態（文字＋色）
         if (textStatus != null)
         {
-            textStatus.text = BuildStatusText();
+            Status st = GetCurrentStatus();
+            textStatus.text = BuildStatusText(st);
 
-            if (!string.IsNullOrEmpty(forcedStatusText) && Time.time < forcedStatusUntil)
+            // 成功/失敗などの固定表示が有効ならその色
+            if (!string.IsNullOrEmpty(forcedStatusText) && Time.unscaledTime < forcedStatusUntil)
                 textStatus.color = forcedStatusColor;
             else
                 textStatus.color = statusNormalColor;
         }
 
-        if (textCount != null)
-            textCount.text = $"入力数: {inputBuffer.LetterCount}";
-
-        // 未選択時
+        // 未選択時：履歴/進捗をリセット
         if (selectedSet.Count == 0)
         {
             if (textTyped != null)
@@ -481,6 +480,7 @@ public class GameManager : MonoBehaviour
 
             for (int i = 0; i < challengeButtons.Count; i++)
             {
+                if (challengeButtons[i] == null) continue;
                 challengeButtons[i].SetSelected(false);
                 challengeButtons[i].SetExcluded(false);
                 challengeButtons[i].ResetProgress();
@@ -488,62 +488,117 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        // 入力履歴
+        // 入力履歴（必要キーの最初の1回だけ緑）
         if (textTyped != null)
             textTyped.text = BuildTypedHistoryColoredTextForSelected();
 
-        // 進捗更新用
+        // ボタン進捗更新
         var typedSet = new HashSet<char>(inputBuffer.TypedChars);
-        int currentCount = inputBuffer.LetterCount;
-        bool isInputting = currentCount > 0;
+        int now = inputBuffer.LetterCount;
+        bool isInputting = (now > 0);
 
         // 選択中レンジの共通部分
         GetSelectedRangeIntersection(out int selMin, out int selMax);
 
-        // ボタン更新（選択色の上書き防止：sel==true には SetExcluded を呼ばない）
         for (int i = 0; i < challengeButtons.Count; i++)
         {
-            bool sel = selectedSet.Contains(i);
             var btn = challengeButtons[i];
+            if (btn == null) continue;
 
+            bool sel = selectedSet.Contains(i);
             btn.SetSelected(sel);
 
+            // ★選択色の上書き防止：sel==true のボタンには SetExcluded を呼ばない
             if (!sel)
             {
                 bool interactable = btn.IsSimulSelectable;
                 bool rangeOk = IsSimulSelectableByRange(i, selMin, selMax);
-
-                bool excluded = (!interactable) || (!rangeOk);
-                btn.SetExcluded(excluded);
+                btn.SetExcluded((!interactable) || (!rangeOk));
                 btn.ResetProgress();
             }
             else
             {
-                btn.UpdateProgress(currentCount, typedSet, isInputting);
+                // 選択中の進捗（キー数/必要キーの色更新はChallengeButtonItem側）
+                btn.UpdateProgress(now, typedSet, isInputting);
             }
         }
     }
 
-    private string BuildStatusText()
+    private Status GetCurrentStatus()
     {
-        if (!string.IsNullOrEmpty(forcedStatusText) && Time.time < forcedStatusUntil)
+        // 固定表示優先（成功/失敗/時間切れ/妨害など）
+        if (!string.IsNullOrEmpty(forcedStatusText) && Time.unscaledTime < forcedStatusUntil)
+        {
+            // forcedStatusText の内容に依存せず、表示は forcedStatusText を使う
+            return Status.Selecting;
+        }
+
+        if (isTimeUp) return Status.TimeUp;
+
+        if (interferenceManager != null && interferenceManager.IsBlockingInput)
+            return Status.Interference;
+
+        if (selectedSet.Count == 0)
+            return Status.Selecting;
+
+        if (inputBuffer.LetterCount == 0)
+            return Status.Waiting;
+
+        return Status.Inputting;
+    }
+
+    private string BuildStatusText(Status st)
+    {
+        // forced中は forcedStatusText を優先
+        if (!string.IsNullOrEmpty(forcedStatusText) && Time.unscaledTime < forcedStatusUntil)
             return forcedStatusText;
 
         forcedStatusText = null;
 
-        bool timeUp = (gameTimer != null && gameTimer.IsTimeUp);
-        if (timeUp) return timeUpMessage;
-
-        if (selectedSet.Count == 0) return "選択中";
-        if (inputBuffer.LetterCount == 0) return "待機中";
-        return "入力中";
+        switch (st)
+        {
+            case Status.TimeUp: return "時間切れ";
+            case Status.Interference: return "妨害中";
+            case Status.Selecting: return "選択中";
+            case Status.Waiting: return "待機中";
+            case Status.Inputting: return "入力中";
+            default: return "選択中";
+        }
     }
 
-    private void ForceStatus(string statusText, Color color)
+    private void ForceStatusAuto(Status st, Color color)
     {
-        forcedStatusText = statusText;
+        forcedStatusText = BuildForcedText(st);
         forcedStatusColor = color;
-        forcedStatusUntil = Time.time + sendResultHoldSeconds;
+        forcedStatusUntil = Time.unscaledTime + sendResultHoldSeconds;
+    }
+
+    private string BuildForcedText(Status st)
+    {
+        switch (st)
+        {
+            case Status.Success: return "送信成功";
+            case Status.Fail: return "送信失敗";
+            case Status.TimeUp: return "時間切れ";
+            case Status.Interference: return "妨害中";
+            case Status.SimulNotAllowed: return "同時打ち不可";
+            default: return "選択中";
+        }
+    }
+
+    private string FormatTime(float seconds)
+    {
+        seconds = Mathf.Max(0f, seconds);
+
+        if (seconds >= 60f)
+        {
+            int m = Mathf.FloorToInt(seconds / 60f);
+            int s = Mathf.FloorToInt(seconds % 60f);
+            return $"{m}:{s:00}";
+        }
+
+        // 1分未満は 59.9 表示
+        return $"{seconds:F1}";
     }
 
     // ==============================
@@ -578,7 +633,6 @@ public class GameManager : MonoBehaviour
     private bool IsSimulSelectableByRange(int otherIndex, int selMin, int selMax)
     {
         if (otherIndex < 0 || otherIndex >= challenges.Count) return false;
-
         var other = challenges[otherIndex];
 
         // overlap: other.min <= selMax AND other.max >= selMin
@@ -616,7 +670,7 @@ public class GameManager : MonoBehaviour
         float fast = Mathf.Max(0.01f, fastTimeSeconds);
         float slow = Mathf.Max(fast + 0.01f, slowTimeSeconds);
 
-        float k = Mathf.InverseLerp(slow, fast, elapsed);
+        float k = Mathf.InverseLerp(slow, fast, elapsed); // 速いほど1に近い
         float m = Mathf.Lerp(minTimeMultiplier, maxTimeMultiplier, k);
         return Mathf.Clamp(m, minTimeMultiplier, maxTimeMultiplier);
     }
@@ -640,15 +694,10 @@ public class GameManager : MonoBehaviour
         {
             if (index < 0 || index >= challengeButtons.Count) continue;
 
-            // お題更新
+            // 新お題生成
             challenges[index] = ChallengeGenerator.Create();
-            if (flowModeStatus.state == flowModeState.isFlowModeActive)
-            {
-                // フローモード中は必要キーなしにする
-                var c = challenges[index];
-                c.requiredKeys.Clear();
-            }
 
+            // 旧ボタン破棄 → 新ボタン生成
             var oldItem = challengeButtons[index];
             int sibling = oldItem != null ? oldItem.transform.GetSiblingIndex() : index;
 
@@ -661,10 +710,11 @@ public class GameManager : MonoBehaviour
             newItem.Setup(index, challenges[index], OnClickChallenge);
             newItem.SetSelected(false);
             newItem.SetExcluded(false);
+            newItem.ResetProgress();
 
             challengeButtons[index] = newItem;
 
-            // 100%生成されるまで選択不可（ChallengeButtonItem側で管理）
+            // 100%生成されるまで選択不可（ChallengeButtonItem側で制御）
             newItem.BeginReveal(challengeRevealSeconds);
         }
     }
@@ -677,6 +727,7 @@ public class GameManager : MonoBehaviour
         if (inputBuffer.TypedChars.Count == 0)
             return "入力履歴:";
 
+        // 選択中お題の必要キーの集合
         var requiredSet = new HashSet<char>();
         foreach (int idx in selectedSet)
         {
