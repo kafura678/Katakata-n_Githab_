@@ -1595,8 +1595,11 @@ MonoBehaviour:
   pauseManager: {fileID: 21992139}
   flowSystem: {fileID: 1811118615}
   inputBuffer: {fileID: 1469850069}
+  flowModeDeactivationObjects:
+  - {fileID: 497578501}
+  enemyManager: {fileID: 352567196}
+  damageAmount: 2.5
   originalChallengeText: {fileID: 270418434}
-  textTyped: {fileID: 1828253681}
   maxChallengeTextOffset: {x: 500, y: -250}
   minChallengeTextOffset: {x: -500, y: -450}
 --- !u!1 &963751044
