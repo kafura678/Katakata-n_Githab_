@@ -165,6 +165,54 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &32733976
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 32733978}
+  - component: {fileID: 32733977}
+  m_Layer: 0
+  m_Name: ChallengeController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &32733977
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 32733976}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b2bf3bda45d94f0c9b0b9f749b7e408, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ChallengeController
+  challengeListParent: {fileID: 737247310}
+  challengeButtonPrefab: {fileID: 6662481253911293588, guid: df8642a0ba14649a3ae302d73c9efb72, type: 3}
+  challengeSlots: 6
+  revealSeconds: 1
+--- !u!4 &32733978
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 32733976}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1181.8273, y: 521.63965, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &109508944
 GameObject:
   m_ObjectHideFlags: 0
@@ -956,6 +1004,7 @@ RectTransform:
   - {fileID: 260083796}
   - {fileID: 963751045}
   - {fileID: 744754460}
+  - {fileID: 1475619994}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -963,6 +1012,53 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!1 &473789817
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 473789819}
+  - component: {fileID: 473789818}
+  m_Layer: 0
+  m_Name: HackerTerminalLog
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &473789818
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 473789817}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47b62c20d9e9d4cff92c03c26b00f907, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HackerTerminalLog
+  targetText: {fileID: 1828253681}
+  maxLines: 15
+  prompt: '> '
+--- !u!4 &473789819
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 473789817}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1181.8273, y: 521.63965, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &497578501
 GameObject:
   m_ObjectHideFlags: 0
@@ -1596,8 +1692,9 @@ MonoBehaviour:
   flowSystem: {fileID: 1811118615}
   inputBuffer: {fileID: 1469850069}
   flowModeDeactivationObjects: []
+  enemyManager: {fileID: 0}
+  damageAmount: 2.5
   originalChallengeText: {fileID: 270418434}
-  textTyped: {fileID: 1828253681}
   maxChallengeTextOffset: {x: 500, y: -250}
   minChallengeTextOffset: {x: -500, y: -450}
 --- !u!1 &963751044
@@ -1729,6 +1826,66 @@ MonoBehaviour:
   pulsePeak: 1
   pulseDuration: 0.25
   obeyGlobalPause: 0
+--- !u!1 &1103126589
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1103126591}
+  - component: {fileID: 1103126590}
+  m_Layer: 0
+  m_Name: SendController
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1103126590
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1103126589}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c026f796ddf2d4e9489bdd0bcf5da74e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SendController
+  enemyManager: {fileID: 352567196}
+  enemyView: {fileID: 0}
+  flow: {fileID: 1811118615}
+  seSource: {fileID: 0}
+  seSuccess: {fileID: 0}
+  seFail: {fileID: 0}
+  seVolume: 1
+  baseDamagePerSend: 10
+  baseFlowGainPerSend: 10
+  flowLossOnFail: 5
+  bonusPerExtraInput: 0.1
+  maxInputMultiplier: 3
+  damageBonusPerAdditional: 0.25
+  flowBonusPerAdditional: 0.25
+  maxDamageSimulMultiplier: 5
+  maxFlowSimulMultiplier: 5
+--- !u!4 &1103126591
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1103126589}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1181.8273, y: 521.63965, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1128723985
 GameObject:
   m_ObjectHideFlags: 0
@@ -1943,39 +2100,20 @@ MonoBehaviour:
   inputBuffer: {fileID: 1469850069}
   interferenceManager: {fileID: 1379683916}
   gameTimer: {fileID: 356342149}
-  enemyManager: {fileID: 352567196}
-  enemyView: {fileID: 984108529}
-  textEnemySuppression: {fileID: 1548815609}
-  flow: {fileID: 1811118615}
-  textFlowPercent: {fileID: 170395491}
-  seSource: {fileID: 0}
-  seSuccess: {fileID: 8300000, guid: 2fde189c32d89448b89ac596b8018005, type: 3}
-  seFail: {fileID: 8300000, guid: ad0677401a9854b7283288d3b7e39083, type: 3}
-  seVolume: 1
+  pauseManager: {fileID: 21992139}
+  challengeController: {fileID: 32733977}
+  sendController: {fileID: 1103126590}
+  terminalWindowManager: {fileID: 1475619995}
+  flow: {fileID: 0}
   textCount: {fileID: 562303787}
-  textTyped: {fileID: 1828253681}
   textStatus: {fileID: 213016649}
   textTime: {fileID: 0}
+  textFlowPercent: {fileID: 170395491}
   statusNormalColor: {r: 1, g: 1, b: 1, a: 1}
   statusSuccessColor: {r: 0, g: 1, b: 0, a: 1}
   statusFailColor: {r: 1, g: 0, b: 0, a: 1}
   sendResultHoldSeconds: 1
-  challengeListParent: {fileID: 737247310}
-  challengeButtonPrefab: {fileID: 6662481253911293588, guid: df8642a0ba14649a3ae302d73c9efb72, type: 3}
-  challengeSlots: 6
-  challengeRevealSeconds: 0.5
-  damagePerSuccess: 20
-  flowGainOnSuccess: 10
-  flowLossOnFail: 5
   startTimerOnSelect: 1
-  fastTimeSeconds: 2
-  slowTimeSeconds: 8
-  minTimeMultiplier: 0.5
-  maxTimeMultiplier: 2
-  damageBonusPerAdditional: 0.25
-  flowBonusPerAdditional: 0.25
-  maxDamageSimulMultiplier: 5
-  maxFlowSimulMultiplier: 5
 --- !u!82 &1469850071
 AudioSource:
   m_ObjectHideFlags: 0
@@ -2073,6 +2211,56 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!1 &1475619993
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1475619994}
+  - component: {fileID: 1475619995}
+  m_Layer: 5
+  m_Name: TerminalWindowManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1475619994
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1475619993}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 444091604}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 100, y: 100}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &1475619995
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1475619993}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c248970e440d34f4eb0e0588da6e14cf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TerminalWindowManager
+  windowPrefab: {fileID: 7174657467107145952, guid: 0aa45404d5fe74065bcc6bb98d634406, type: 3}
+  windowParent: {fileID: 444091604}
 --- !u!1 &1548815607
 GameObject:
   m_ObjectHideFlags: 0
@@ -2780,3 +2968,6 @@ SceneRoots:
   - {fileID: 356342150}
   - {fileID: 21992140}
   - {fileID: 1379683917}
+  - {fileID: 473789819}
+  - {fileID: 32733978}
+  - {fileID: 1103126591}
