@@ -82,7 +82,7 @@ public class flowModeManager : MonoBehaviour
 
     private void judgeChallenge()
     {
-        if (challenge.minCount <= inputBuffer.LetterCount)
+        if (challenge.minInputCount <= inputBuffer.LetterCount)
         {
             updateChallenge();
         }

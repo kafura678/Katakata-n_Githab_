@@ -1,219 +1,172 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using System;
 
-public class ChallengeButtonItem : MonoBehaviour
+public class ChallengeButtonItem : MonoBehaviour, IPointerClickHandler
 {
-    // ===============================
-    // 参照
-    // ===============================
-    [Header("参照")]
-    [SerializeField] private Button button;
+    // ==============================
+    // UI
+    // ==============================
+    [Header("UI")]
+    [SerializeField] private Text textMinCount;
     [SerializeField] private Image background;
 
-    [Header("表示テキスト（UI.Text）")]
-    [SerializeField] private Text textKeyCount;     // キー数：10〜15
-    [SerializeField] private Text textRequired;     // 必要キー：A B C
+    [Header("Cover（カーテン）")]
+    [SerializeField] private RectTransform coverRect;
+    [SerializeField] private Image coverImage;
 
-    [Header("カバー（Reveal用）")]
-    [SerializeField] private RectTransform cover;   // 上に被せるImage
-
-    // ===============================
-    // 色設定
-    // ===============================
-    [Header("色設定")]
+    [Header("色")]
     [SerializeField] private Color normalColor = Color.white;
-    [SerializeField] private Color selectedColor = new Color(0.6f, 1f, 0.6f, 1f);
-    [SerializeField] private Color excludedColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+    [SerializeField] private Color selectedColor = new Color(0.7f, 1f, 0.7f);
+    [SerializeField] private Color readyColor = new Color(0.5f, 1f, 1f);
 
-    // ===============================
-    // 内部状態
-    // ===============================
-    private bool isSelected;
-    private bool isExcluded;
-    private Challenge challengeData;
+    // ==============================
+    // 内部
+    // ==============================
+    private Challenge challenge;
+    private int index;
 
-    public bool IsSimulSelectable { get; private set; } = true;
+    private Action<int> onClick;
+    private Action<int> onDoubleClick;
 
-    // ===============================
+    private bool isSelected = false;
+    private bool isRevealing = false;
+
+    private float revealDuration = 0f;
+    private float revealTimer = 0f;
+
+    private float fullWidth = 0f;
+
+    private float lastClickTime = 0f;
+    private const float doubleClickThreshold = 0.3f;
+
+    // ==============================
+    // 公開
+    // ==============================
+    public bool IsSimulSelectable => !isRevealing;
+
+    // ==============================
     // 初期化
-    // ===============================
-    void Reset()
+    // ==============================
+    public void Setup(int idx, Challenge c, Action<int> clickCallback)
     {
-        button = GetComponent<Button>();
-        background = GetComponent<Image>();
+        index = idx;
+        challenge = c;
+        onClick = clickCallback;
+
+        if (textMinCount != null)
+            textMinCount.text = $"最低入力数：{challenge.minInputCount}以上";
+
+        SetSelected(false);
+        ResetProgress();
     }
 
-    public void Setup(int index, Challenge data, System.Action<int> onClick)
+    public void SetDoubleClick(Action<int> doubleClickCallback)
     {
-        challengeData = data;
+        onDoubleClick = doubleClickCallback;
+    }
 
-        if (button != null)
+    // ==============================
+    // Reveal開始
+    // ==============================
+    public void BeginReveal(float duration)
+    {
+        if (coverRect == null)
+            return;
+
+        revealDuration = Mathf.Max(0.01f, duration);
+        revealTimer = 0f;
+        isRevealing = true;
+
+        fullWidth = coverRect.rect.width;
+
+        if (coverImage != null)
+            coverImage.raycastTarget = true;
+
+        coverRect.gameObject.SetActive(true);
+    }
+
+    void Update()
+    {
+        if (!isRevealing) return;
+
+        revealTimer += Time.unscaledDeltaTime;
+
+        float t = Mathf.Clamp01(revealTimer / revealDuration);
+
+        float width = Mathf.Lerp(fullWidth, 0f, t);
+        coverRect.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
+
+        if (t >= 1f)
         {
-            button.onClick.RemoveAllListeners();
-            button.onClick.AddListener(() => onClick?.Invoke(index));
+            isRevealing = false;
+            coverRect.gameObject.SetActive(false);
+
+            if (coverImage != null)
+                coverImage.raycastTarget = false;
+        }
+    }
+
+    // ==============================
+    // クリック
+    // ==============================
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (!IsSimulSelectable)
+            return;
+
+        float time = Time.unscaledTime;
+
+        if (time - lastClickTime <= doubleClickThreshold)
+        {
+            onDoubleClick?.Invoke(index);
+            lastClickTime = 0f;
+            return;
         }
 
-        UpdateBaseText();
-        ApplyVisual();
+        lastClickTime = time;
+        onClick?.Invoke(index);
     }
 
-    private void UpdateBaseText()
+    // ==============================
+    // 選択
+    // ==============================
+    public void SetSelected(bool selected)
     {
-        if (challengeData == null) return;
-
-        if (textKeyCount != null)
-            textKeyCount.text = $"キー数：{challengeData.minCount}〜{challengeData.maxCount}";
-
-        if (textRequired != null)
-            textRequired.text = $"必要キー：{string.Join(" ", challengeData.requiredKeys)}";
+        isSelected = selected;
+        UpdateVisualState();
     }
 
-    // ===============================
-    // 状態管理
-    // ===============================
-    public void SetSelected(bool value)
+    public void SetExcluded(bool excluded)
     {
-        isSelected = value;
-        ApplyVisual();
-    }
-
-    public void SetExcluded(bool value)
-    {
-        isExcluded = value;
-
-        if (button != null)
-            button.interactable = !isExcluded;
-
-        ApplyVisual();
-    }
-
-    public void SetSimulSelectable(bool value)
-    {
-        IsSimulSelectable = value;
-        SetExcluded(!value);
-    }
-
-    private void ApplyVisual()
-    {
-        if (background == null) return;
-
-        if (isExcluded)
-            background.color = excludedColor;
-        else if (isSelected)
-            background.color = selectedColor;
-        else
-            background.color = normalColor;
-    }
-
-    // ===============================
-    // GameManager互換（空でOK）
-    // ===============================
-    public void UpdateProgress(int currentCount, HashSet<char> typedSet, bool isInputting)
-    {
-        if (challengeData == null) return;
-
-        // ===============================
-        // キー数表示（下限〜上限）
-        // ===============================
-        if (textKeyCount != null)
-        {
-            int min = challengeData.minCount;
-            int max = challengeData.maxCount;
-
-            // 下限判定
-            string minColor = (currentCount >= min) ? "green" : "red";
-
-            // 上限判定
-            string maxColor = (currentCount <= max) ? "green" : "red";
-
-            textKeyCount.text =
-                $"キー数：<color={minColor}>{min}</color>〜<color={maxColor}>{max}</color>";
-        }
-
-        // ===============================
-        // 必要キー表示
-        // ===============================
-        if (textRequired != null)
-        {
-            var sb = new System.Text.StringBuilder();
-            sb.Append("必要キー：");
-
-            foreach (char k in challengeData.requiredKeys)
-            {
-                char u = char.ToUpperInvariant(k);
-
-                bool contains = typedSet.Contains(u);
-
-                if (contains)
-                    sb.Append($"<color=green>{u}</color> ");
-                else
-                    sb.Append($"<color=red>{u}</color> ");
-            }
-
-            textRequired.text = sb.ToString();
-        }
+        // 新仕様では使用しない
     }
 
     public void ResetProgress()
     {
-        if (challengeData == null) return;
-
-        // キー数を通常表示に戻す
-        if (textKeyCount != null)
-        {
-            textKeyCount.text =
-                $"キー数：{challengeData.minCount}〜{challengeData.maxCount}";
-        }
-
-        // 必要キーを通常表示に戻す
-        if (textRequired != null)
-        {
-            textRequired.text =
-                $"必要キー：{string.Join(" ", challengeData.requiredKeys)}";
-        }
+        UpdateVisualState();
     }
 
-    // ===============================
-    // カバー方式 Reveal
-    // ===============================
-    public void BeginReveal(float duration)
+    public void UpdateProgress(int currentCount, System.Collections.Generic.HashSet<char> typedSet, bool isInputting)
     {
-        StartCoroutine(RevealRoutine(duration));
+        if (challenge == null) return;
+        if (!isSelected) return;
+
+        bool ready = currentCount >= challenge.minInputCount;
+
+        if (background == null) return;
+
+        background.color = ready ? readyColor : selectedColor;
     }
 
-    private IEnumerator RevealRoutine(float duration)
+    private void UpdateVisualState()
     {
-        if (cover == null)
-            yield break;
+        if (background == null) return;
 
-        float t = 0f;
-
-        // クリック防止
-        if (button != null)
-            button.interactable = false;
-
-        float fullWidth = cover.rect.width;
-
-        // 最初は全面カバー
-        cover.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, fullWidth);
-
-        while (t < duration)
-        {
-            t += Time.deltaTime;
-            float a = Mathf.Clamp01(t / duration);
-
-            float width = fullWidth * (1f - a);
-            cover.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, width);
-
-            yield return null;
-        }
-
-        // 完全に開く
-        cover.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, 0f);
-
-        if (button != null)
-            button.interactable = true;
+        if (!isSelected)
+            background.color = normalColor;
+        else
+            background.color = selectedColor;
     }
 }
